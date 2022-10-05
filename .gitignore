@@ -348,3 +348,6 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# Python Applications for Azure use a virtual enviornment with the venv module
+*.venv
