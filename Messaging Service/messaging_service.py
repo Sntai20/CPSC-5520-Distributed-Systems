@@ -127,8 +127,8 @@ class MessagingService(object):
             
 
 if __name__ == '__main__':
-    sample = MessagingService()
-    sample.create_client_with_connection_string()
-    #sample.queue_and_messages_example()
-    sample.sender_queue_and_messages()
-    sample.receiver_queue_and_messages()
+    demo = MessagingService()
+    demo.create_client_with_connection_string()
+    demo.sender_queue_and_messages()
+    demo.receiver_queue_and_messages()
+    #demo.queue_and_messages_example()
