@@ -26,7 +26,7 @@ import time
 from azure.storage.queue import QueueServiceClient
 from azure.storage.queue import QueueClient
 
-class MessagingService(object):
+class MessagingService():
     """Simple Messaging Service class used to send and receive messages to an Azure Queue."""
 
     connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
