@@ -45,23 +45,23 @@ class Lab2():
          the text HELLO (also pickled, of course).
         """
         for item in self.my_list:
-            host, port = item['host'], item['port']
+            member_host, member_port = item['host'], item['port']
             try:
                 my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 my_socket.settimeout(1500)
-                if host == "localhost":
-                    host = "127.0.0.1"
-                my_socket.connect((host, port))
+                if member_host == "localhost":
+                    member_host = "127.0.0.1"
+                my_socket.connect((member_host, member_port))
 
                 hello_token = 'HELLO'
                 # HELLO to {'host': 'localhost', 'port': 23015}
-                print(f"HELLO to {'host': '{host}', 'port': {port}}")
+                print(f"HELLO to {'host': '{member_host}', 'port': {member_port}}")
                 my_message = self.message(my_socket, hello_token, BUFFER_SIZE)
                 print(my_message)
                 my_socket.close()
 
             except ConnectionRefusedError as e_exception:
-                print(f"{host}: {e_exception}")
+                print(f"{member_host}: {e_exception}")
             except socket.gaierror as e_exception:
                 print(f"Address-related error connecting to server: {e_exception}")
             except socket.error as e_exception:
