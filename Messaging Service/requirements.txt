@@ -1,0 +1,7 @@
+# This is a comment, to show how #-prefixed lines are ignored.
+# It is possible to specify requirements as plain names.
+# https://pip.pypa.io/en/stable/reference/requirements-file-format/
+# pip install -r requirements.txt
+
+# Azure Storage SDK v12 for Python
+azure-storage-queue
