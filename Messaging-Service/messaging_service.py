@@ -34,7 +34,15 @@ class MessagingService(object):
     def create_client_with_connection_string(self):
         """Instantiate the QueueServiceClient from a connection string"""
         queue_service = QueueServiceClient.from_connection_string(conn_str=self.connection_string)
-    
+
+        # Clearing the Screen
+        os.system('clear')
+
+        queue_list = queue_service.list_queues(name_starts_with = "message")
+        for queue in queue_list:
+            print(f"Found queue named {queue.name} " +
+                    f"Approximate Message Count {queue.approximate_message_count}\n\n")
+
     def sender_queue_and_messages(self):
         """
         Instantiate the QueueClient from a connection string
@@ -48,9 +56,6 @@ class MessagingService(object):
                             conn_str=self.connection_string,
                             queue_name=queue_name)
 
-        # Clearing the Screen
-        os.system('clear')
-
         try:
             for message in list(range(create_number_of_messages)):
                 # Generate a Stock Trade request message.
@@ -62,7 +67,6 @@ class MessagingService(object):
                 time.sleep(2)
 
         finally:
-            #queue_client.delete_queue()
             print("Sender: Messages sent\n\n")
 
     def receiver_queue_and_messages(self):
