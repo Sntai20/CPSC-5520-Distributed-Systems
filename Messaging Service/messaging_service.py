@@ -1,3 +1,4 @@
+"""
 # coding: utf-8
 
 # -------------------------------------------------------------------------
@@ -6,11 +7,10 @@
 # license information.
 # --------------------------------------------------------------------------
 
-"""
 FILE: messaging_service.py
 
 DESCRIPTION:
-    These samples demonstrate common scenarios like instantiating a client,
+    This program demonstrates common scenarios like instantiating a client,
     creating a queue, and sending and receiving messages.
 
 USAGE:
@@ -33,38 +33,9 @@ class MessagingService(object):
 
         # Get queue service properties
         properties = queue_service.get_service_properties()
-
-    def queue_and_messages_example(self):
-        # Create a unique name for the queue
-        #queue_name = "messagequeue-" + str(uuid.uuid4())
-        queue_name = "messagequeue"
-
-        # Instantiate the QueueClient from a connection string
-        from azure.storage.queue import QueueClient
-        queue_client = QueueClient.from_connection_string(conn_str=self.connection_string, queue_name=queue_name)
-
-        # Create the queue
-        queue_client.create_queue()
-
-        try:
-            # Send messages
-            queue_client.send_message("I'm using queues!")
-            queue_client.send_message("This is my second message")
-
-            # Receive the messages
-            response = queue_client.receive_messages(messages_per_page=2)
-
-            # Print the content of the messages
-            for message in response:
-                print(message.content)
-
-        finally:
-            # [START delete_queue]
-            #queue_client.delete_queue()
-            print("Delete the queue.")
     
     def sender_queue_and_messages(self):
-        # Create a unique name for the queue
+        # Create a name for the queue
         queue_name = "messagequeue"
         create_number_of_messages = 3
 
@@ -72,13 +43,13 @@ class MessagingService(object):
         from azure.storage.queue import QueueClient
         queue_client = QueueClient.from_connection_string(conn_str=self.connection_string, queue_name=queue_name)
 
-        # Create the queue
-        #queue_client.create_queue()
+        # Create the queue. queue_client.create_queue()
         # Clearing the Screen
         os.system('clear')
 
         try:
             for message in list(range(create_number_of_messages)):
+                # Generate a Stock Trade request message.
                 message = str(uuid.uuid4())
                 # Send messages
                 queue_client.send_message(message)
@@ -87,7 +58,6 @@ class MessagingService(object):
                 time.sleep(2)
             
         finally:
-            # [START delete_queue]
             #queue_client.delete_queue()
             print(f"Sender: Messages sent\n\n")
 
@@ -96,7 +66,7 @@ class MessagingService(object):
         queue_name = "messagequeue"
 
         # Simulate latency
-        print(f"\n\nSimulate latency of 3 seconds.\n\n")
+        print(f"\n\nSimulate 3 seconds of latency.\n\n")
         time.sleep(3)
 
         # Instantiate the QueueClient from a connection string
@@ -125,6 +95,32 @@ class MessagingService(object):
             print("Receiver: Delete the queue.\n\n\n")
             print(f"Compleleted {count} stock trade request(s).")
             
+    def queue_and_messages_example(self):
+        # Create a unique name for the queue. queue_name = "messagequeue-" + str(uuid.uuid4())
+        queue_name = "messagequeue"
+
+        # Instantiate the QueueClient from a connection string
+        from azure.storage.queue import QueueClient
+        queue_client = QueueClient.from_connection_string(conn_str=self.connection_string, queue_name=queue_name)
+
+        # Create the queue
+        queue_client.create_queue()
+
+        try:
+            # Send messages
+            queue_client.send_message("I'm using queues!")
+            queue_client.send_message("This is my second message")
+
+            # Receive the messages
+            response = queue_client.receive_messages(messages_per_page=2)
+
+            # Print the content of the messages
+            for message in response:
+                print(message.content)
+
+        finally:
+            #queue_client.delete_queue()
+            print("Delete the queue.")
 
 if __name__ == '__main__':
     demo = MessagingService()
