@@ -19,6 +19,7 @@ import sys
 
 BUFFER_SZ = 1024  # tcp receive buffer size
 
+
 class Lab1(object):
 
     def __init__(self, gcd_host, gcd_port):
@@ -38,7 +39,7 @@ class Lab1(object):
 
     def meet_members(self):
         for item in self.my_list:
-            host,port = item['host'],item['port']
+            host, port = item['host'], item['port']
             try:
                 my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 my_socket.settimeout(1500)
@@ -52,9 +53,10 @@ class Lab1(object):
                 my_message = self.message(my_socket, hello_token, BUFFER_SZ)
                 print(my_message)
                 my_socket.close()
-            except socket.gaierror as e: 
-                print ("Address-related error connecting to server: %s" % e)  
-            except socket.error as e: 
+
+            except socket.gaierror as e:
+                print("Address-related error connecting to server: %s" % e)
+            except socket.error as e:
                 print("failed to connect: %s" % e)
             except Exception as failure:
                 print('general failure', failure)
@@ -67,8 +69,9 @@ class Lab1(object):
         return_message = pickle.loads(second_message)
         return return_message
 
-if  __name__ == '__main__':
-    if  len(sys.argv) != 3:
+
+if __name__ == '__main__':
+    if len(sys.argv) != 3:
         print("Usage: python lab1.py GCDHOST GCDPORT")
         exit(1)
     host, port = sys.argv[1:]
