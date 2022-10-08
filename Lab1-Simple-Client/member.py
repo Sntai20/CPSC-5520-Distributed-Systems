@@ -31,8 +31,7 @@ class GroupMember(socketserver.BaseRequestHandler):
             if message != 'HELLO':
                 response = pickle.dumps('Unexpected message: ' + str(message))
             else:
-                message = ('OK', 'Happy to meet you, {}'.format(
-                    self.client_address))
+                message = (f"'OK', 'Happy to meet you', ('{self.client_address})'")
                 response = pickle.dumps(message)
         self.request.sendall(response)
 
@@ -41,6 +40,6 @@ if __name__ == '__main__':
     if len(sys.argv) != 2:
         print("Usage: python member.py PORT")
         exit(1)
-    port = int(sys.argv[1])
-    with socketserver.TCPServer(('', port), GroupMember) as server:
+    PORT = int(sys.argv[1])
+    with socketserver.TCPServer(('', PORT), GroupMember) as server:
         server.serve_forever()

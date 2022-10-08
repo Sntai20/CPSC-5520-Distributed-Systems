@@ -17,16 +17,18 @@ import pickle
 import socket
 import sys
 
-BUFFER_SZ = 1024  # tcp receive buffer size
+BUFFER_SIZE = 1024  # tcp receive buffer size
 
 
-class Lab1(object):
-
+class Lab1():
+    """
+    Lab1 is used to join a group and meet members.
+    """
     def __init__(self, gcd_host, gcd_port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((gcd_host, gcd_port))
         # JOIN ('cs2.seattleu.edu', 23600)
-        print("JOIN ('{}', '{}')".format(gcd_host, gcd_port))
+        print(f"JOIN ({gcd_host}, {gcd_port}")
         self.my_list = []
 
     def join_group(self):
@@ -34,38 +36,45 @@ class Lab1(object):
         Joins the incoming messages - expects only 'JOIN' messages
         """
         join_token = 'JOIN'
-        self.my_list = self.message(self.socket, join_token, BUFFER_SZ)
+        self.my_list = self.message(self.socket, join_token, BUFFER_SIZE)
         self.socket.close()
 
     def meet_members(self):
+        """
+         The message to send to the other group members is just
+         the text HELLO (also pickled, of course).
+        """
         for item in self.my_list:
             host, port = item['host'], item['port']
             try:
                 my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 my_socket.settimeout(1500)
+                if host == "localhost":
+                    host = "127.0.0.1"
                 my_socket.connect((host, port))
-                """
-                The message to send to the other group members is just the text HELLO (also pickled, of course)
-                """
+
                 hello_token = 'HELLO'
                 # HELLO to {'host': 'localhost', 'port': 23015}
-                print("HELLO to 'host': {}, 'port': {}".format(host, port))
-                my_message = self.message(my_socket, hello_token, BUFFER_SZ)
+                print(f"HELLO to {'host': '{host}', 'port': {port}}")
+                my_message = self.message(my_socket, hello_token, BUFFER_SIZE)
                 print(my_message)
                 my_socket.close()
 
-            except socket.gaierror as e:
-                print("Address-related error connecting to server: %s" % e)
-            except socket.error as e:
-                print("failed to connect: %s" % e)
+            except socket.gaierror as e_exception:
+                print(f"Address-related error connecting to server: {e_exception}")
+            except socket.error as e_exception:
+                print(f"failed to connect: {e_exception}")
             except Exception as failure:
                 print('general failure', failure)
 
     @staticmethod
-    def message(sock, send_data, BUFFER_SZ):
+    def message(sock, send_data, buffer_size):
+        """
+        Serialize the message using pickle.
+        """
         response = pickle.dumps(send_data)
         sock.sendall(response)
-        second_message = sock.recv(BUFFER_SZ)
+        second_message = sock.recv(buffer_size)
         return_message = pickle.loads(second_message)
         return return_message
 
@@ -73,7 +82,7 @@ class Lab1(object):
 if __name__ == '__main__':
     if len(sys.argv) != 3:
         print("Usage: python lab1.py GCDHOST GCDPORT")
-        exit(1)
+        sys.exit(1)
     host, port = sys.argv[1:]
     lab1 = Lab1(host, int(port))
     lab1.join_group()
