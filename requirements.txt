@@ -3,5 +3,8 @@
 # https://pip.pypa.io/en/stable/reference/requirements-file-format/
 # pip install -r requirements.txt
 
+# Python Linter
+pylint
+
 # Azure Storage SDK v12 for Python
 azure-storage-queue
