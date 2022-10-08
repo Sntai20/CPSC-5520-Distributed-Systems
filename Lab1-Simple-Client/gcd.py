@@ -13,7 +13,8 @@ BUF_SZ = 1024  # tcp receive buffer size
 
 class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
     """
-    A Group Coordinator Daemon (GCD) which will respond with a list of potential group members to a text message JOIN
+    A Group Coordinator Daemon (GCD) which will respond with
+    a list of potential group members to a text message JOIN
     with list of group members to contact.
 
     For Lab1, we just respond with a fixed list of two servers.
@@ -26,12 +27,14 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
         """
         Handles the incoming messages - expects only 'JOIN' messages
         """
-        raw = self.request.recv(BUF_SZ)  # self.request is the TCP socket connected to the client
+        raw = self.request.recv(
+            BUF_SZ)  # self.request is the TCP socket connected to the client
         print(self.client_address)
         try:
             message = pickle.loads(raw)
         except (pickle.PickleError, KeyError):
-            response = bytes('Expected a pickled message, got ' + str(raw)[:100] + '\n', 'utf-8')
+            response = bytes('Expected a pickled message, got ' +
+                             str(raw)[:100] + '\n', 'utf-8')
         else:
             if message != 'JOIN':
                 response = pickle.dumps('Unexpected message: ' + str(message))
