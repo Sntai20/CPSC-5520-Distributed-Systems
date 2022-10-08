@@ -20,9 +20,12 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
     We respond with a dictionary of group members.
     """
     # global group data structures
-    listeners_by_pid = {}  # listener address indexed by process id (as returned from JOIN message)
-    pids_by_listener = {}  # process ids indexed by listener address (only one pid for each unique (host, port))
-    pids_by_student = {}  # process ids indexed by student id (each student only allowed one at a time)
+    # listener address indexed by process id (as returned from JOIN message)
+    listeners_by_pid = {}
+    # process ids indexed by listener address (only one pid for each unique (host, port))
+    pids_by_listener = {}
+    # process ids indexed by student id (each student only allowed one at a time)
+    pids_by_student = {}
     # we want to restrict all listeners to be on the same host as the GCD
     localhost_ip = socket.gethostbyname('localhost')
 
@@ -34,7 +37,8 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
         raw = self.request.recv(BUF_SZ)  # self.request is the TCP socket connected to the client
         try:
             message = pickle.loads(raw)
-        except Exception:
+        except pickle.PickleError:
+            # https://pythontic.com/modules/pickle/exceptions
             response = bytes('Expected a pickled message, got ' + str(raw)[:100] + '\n', 'utf-8')
         else:
             try:
@@ -45,6 +49,7 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
         self.request.sendall(response)
         self.request.shutdown(socket.SHUT_RDWR)
         self.request.close()
+
     @staticmethod
     def handle_join(message):
         """
@@ -62,9 +67,9 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
             # pull apart message
             message_name, message_data = message
         except (ValueError, TypeError):
-            raise ValueError('Malformed message')
+            raise ValueError('Malformed message') from TypeError
         if message_name != 'JOIN':
-            raise ValueError('Unexpected message: {}'.format(message_name))
+            raise ValueError(f'Unexpected message: {message_name}')
 
         # pull apart message_data
         try:
@@ -72,16 +77,17 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
             listen_host, listen_port = listener
             days_to_birthday, student_id = process_id
         except (ValueError, TypeError):
-            raise ValueError('Malformed message data, expected ((days_to_bd, su_id), (host, port))')
-        if not (type(days_to_birthday) is int and type(student_id) is int and
+            raise ValueError('Malformed message data, expected '
+                + '((days_to_bd, su_id), (host, port))') from TypeError
+        if not (isinstance(days_to_birthday) is int and isinstance(student_id) is int and
                 0 < days_to_birthday < 366 and 1_000_000 <= student_id < 10_000_000):
             raise ValueError('Malformed process id, expected (days_to_next_birthday, student_id)')
         # make sure that listen_host is localhost or equivalent
         try:
             listen_ip = socket.gethostbyname(listen_host)
         except Exception as err:
-            raise ValueError(str(err))
-        if not (type(listen_port) is int and 0 < listen_port < 65_536):
+            raise ValueError(str(err)) from err
+        if not (isinstance(listen_port) is int and 0 < listen_port < 65_536):
             raise ValueError('Invalid port number')
         if listen_ip != GroupCoordinatorDaemon.localhost_ip:
             raise ValueError('Only local group members currently allowed')
@@ -108,7 +114,7 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print("Usage: python gcd2.py GCDPORT")
-        exit(1)
-    port = int(sys.argv[1])
-    with socketserver.TCPServer(('', port), GroupCoordinatorDaemon) as server:
+        sys.exit(1)
+    PORT = int(sys.argv[1])
+    with socketserver.TCPServer(('', PORT), GroupCoordinatorDaemon) as server:
         server.serve_forever()

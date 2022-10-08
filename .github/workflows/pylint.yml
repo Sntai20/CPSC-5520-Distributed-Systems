@@ -21,3 +21,6 @@ jobs:
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*messaging_service.py')
+    - name: Analysing the lab2 code with pylint
+      run: |
+        pylint $(git ls-files 'Lab2-Bully/*.py')
