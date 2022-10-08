@@ -60,12 +60,12 @@ class Lab2():
                 print(my_message)
                 my_socket.close()
 
+            except ConnectionRefusedError as e_exception:
+                print(f"{host}: {e_exception}")
             except socket.gaierror as e_exception:
                 print(f"Address-related error connecting to server: {e_exception}")
             except socket.error as e_exception:
                 print(f"failed to connect: {e_exception}")
-            except Exception as failure:
-                print('general failure', failure)
 
     @staticmethod
     def message(sock, send_data, buffer_size):

@@ -38,6 +38,7 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
         try:
             message = pickle.loads(raw)
         except pickle.PickleError:
+            # https://pythontic.com/modules/pickle/exceptions
             response = bytes('Expected a pickled message, got ' + str(raw)[:100] + '\n', 'utf-8')
         else:
             try:
