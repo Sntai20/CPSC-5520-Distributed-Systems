@@ -351,3 +351,6 @@ MigrationBackup/
 
 # Python Applications for Azure use a virtual enviornment with the venv module
 *.venv
+
+# Local log file.
+*log-gcd2.txt
