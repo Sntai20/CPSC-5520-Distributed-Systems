@@ -4,6 +4,7 @@ This is free and unencumbered software released into the public domain.
 :Authors: Kevin Lundeen
 :Version: f19-02
 """
+import errno
 import pickle
 import socket
 import socketserver
@@ -130,9 +131,23 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
         return group
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python gcd2.py GCDPORT")
+    if len(sys.argv) != 1:
+        print("Usage: python gcd2.py")
+        print(sys.argv)
         sys.exit(1)
-    PORT = int(sys.argv[1])
-    with socketserver.TCPServer(('', PORT), GroupCoordinatorDaemon) as server:
-        server.serve_forever()
+    PORT = int("23633")
+
+    a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    try:
+        a_socket.bind(("127.0.0.1", PORT))
+
+    except socket.error as e:
+        if e.errno == errno.EADDRINUSE:
+            print("Port is already in use")
+            a_socket.close()
+            sys.exit(1)
+
+a_socket.close()
+with socketserver.TCPServer(('', PORT), GroupCoordinatorDaemon) as server:
+    server.serve_forever()
