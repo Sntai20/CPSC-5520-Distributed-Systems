@@ -5,6 +5,10 @@
 
 # Python Linter
 pylint
+flake8
+
+# Tests
+pytest
 
 # Azure Storage SDK v12 for Python
 azure-storage-queue
