@@ -57,7 +57,7 @@ class Lab2():
             #member_host = self.my_dictionary[0:1]
             #member_port = self.my_dictionary[1]
             print(self.my_dictionary[0:1])
-        
+
             # #member_host, member_port = dictionary_item['host'], dictionary_item['port']
             # try:
             #     my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
