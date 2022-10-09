@@ -40,9 +40,7 @@ class Lab2():
         param: next_birthday YYYY-MM-DD
         param: student_id 123456
         """
-        self.gcd_host = gcd_host
-        self.gcd_port = gcd_port
-        self.gcd_address = (self.gcd_host, self.gcd_port)
+        self.gcd_address = (gcd_host, gcd_port)
         days_to_birthday = (datetime.fromisoformat(next_birthday) - datetime.now()).days
         self.process_id = (days_to_birthday, int(student_id))
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
