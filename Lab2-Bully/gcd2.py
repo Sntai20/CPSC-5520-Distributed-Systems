@@ -37,6 +37,8 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
         raw = self.request.recv(BUF_SZ)  # self.request is the TCP socket connected to the client
         try:
             message = pickle.loads(raw)
+            # Remove this line after testing.
+            print(message)
         except pickle.PickleError:
             # https://pythontic.com/modules/pickle/exceptions
             response = bytes('Expected a pickled message, got ' + str(raw)[:100] + '\n', 'utf-8')
@@ -64,6 +66,8 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
         :raises ValueError: if the message cannot be validated
         """
         try:
+            # Remove this line after testing.
+            print(message)
             # pull apart message
             message_name, message_data = message
         except (ValueError, TypeError):
