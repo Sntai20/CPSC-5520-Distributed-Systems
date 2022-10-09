@@ -126,7 +126,7 @@ if __name__ == '__main__':
         print("Usage: python lab2.py GCDHOST GCDPORT YYYY-MM-DD SUID")
         print("Birthday format is YYYY-MM-DD")
         sys.exit(1)
-    
+
     GCD_HOST = sys.argv[1]
     GCD_PORT = sys.argv[2]
     NEXT_BIRTHDAY = sys.argv[3]

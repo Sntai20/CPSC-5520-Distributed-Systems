@@ -42,8 +42,9 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
         except pickle.PickleError:
             # https://pythontic.com/modules/pickle/exceptions
             response = bytes('Expected a pickled message, got ' + str(raw)[:100] + '\n', 'utf-8')
-        except Exception:
-            response = bytes('Expected a pickled message, got ' + str(raw)[:100] + '\n', 'utf-8')
+        # Exception too general.
+        # except Exception:
+        #     response = bytes('Expected a pickled message, got ' + str(raw)[:100] + '\n', 'utf-8')
         else:
             try:
                 response_data = self.handle_join(message)
@@ -77,7 +78,8 @@ class GroupCoordinatorDaemon(socketserver.BaseRequestHandler):
             # pull apart message
             message_name, message_data = message
             # Remove this line after testing.
-            print(f"handle_join message_name {message_name} message_data {message_data} = message {message}")
+            print(f"handle_join message_name {message_name} "
+                    "message_data {message_data} = message {message}")
         except (ValueError, TypeError):
             raise ValueError('Malformed message') from TypeError
         if message_name != 'JOIN':
