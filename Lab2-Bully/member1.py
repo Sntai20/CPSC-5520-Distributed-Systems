@@ -5,13 +5,6 @@ This is free and unencumbered software released into the public domain.
 :Version: 000-01
 
 Expected output:
-JOIN ('cs2.seattleu.edu', 23600)
-HELLO to {'host': 'cs1.seattleu.edu', 'port': 10000}
-('OK', "Happy to meet you, ('10.124.72.21', 38594)")
-HELLO to {'host': 'cs2.seattleu.edu', 'port': 33313}
-failed to connect: {} [Errno 111] Connection refused
-HELLO to {'host': 'localhost', 'port': 23015}
-('OK', "Happy to meet you, ('127.0.0.1', 44338)")
 """
 from datetime import datetime
 from enum import Enum
@@ -29,7 +22,7 @@ class MessageName(Enum):
     PROBE = 4
 
 
-class Member():
+class Member1():
     """
     Lab2 is used to join a group and meet members.
     """
@@ -85,30 +78,7 @@ class Member():
          the text HELLO (also pickled, of course).
         """
         for member_dictionary_item in self.members_list:
-            # member_dictionary_item
-            #member_host = self.my_dictionary[0:1]
-            #member_port = self.my_dictionary[1]
-            print(member_dictionary_item[0:1])
-
-            # #member_host, member_port = dictionary_item['host'], dictionary_item['port']
-            # try:
-            #     my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            #     my_socket.settimeout(1500)
-            #     my_socket.connect((member_host, member_port))
-
-            #     hello_token = 'HELLO'
-            #     # HELLO to {'host': 'localhost', 'port': 23015}
-            #     print(f"HELLO to {'host': '{member_host}', 'port': {member_port}}")
-            #     my_message = self.message(my_socket, hello_token, BUFFER_SIZE)
-            #     print(my_message)
-            #     my_socket.close()
-
-            # except ConnectionRefusedError as e_exception:
-            #     print(f"{member_host}: {e_exception}")
-            # except socket.gaierror as e_exception:
-            #     print(f"Address-related error connecting to server: {e_exception}")
-            # except socket.error as e_exception:
-            #     print(f"failed to connect: {e_exception}")
+            print(member_dictionary_item)
 
     @staticmethod
     def message(sock, send_data, buffer_size):
@@ -133,6 +103,6 @@ if __name__ == '__main__':
     STUDENT_ID = sys.argv[4]
     # print(f"Using the following address: {GCD_HOST} {GCD_PORT} {NEXT_BIRTHDAY} {STUDENT_ID}")
 
-    lab2 = Member(GCD_HOST, int(GCD_PORT), NEXT_BIRTHDAY, STUDENT_ID)
+    lab2 = Member1(GCD_HOST, int(GCD_PORT), NEXT_BIRTHDAY, STUDENT_ID)
     lab2.join_group()
     #lab2.meet_members()
