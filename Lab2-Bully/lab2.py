@@ -13,7 +13,7 @@ import socket
 import sys
 
 # tcp receive buffer size
-BUFFER_SIZE = 1024  
+BUFFER_SIZE = 1024
 ASSUME_FAILURE_TIMEOUT = 5
 CHECK_INTERVAL = 1
 PEER_DIGITS = 1
@@ -114,11 +114,15 @@ class Lab2():
             print(f"failed to connect: {e_exception}")
 
     def receive_message(self, peer):
-        pass
+        """
+        Used to receive messages from other members.
+        """
 
     @staticmethod
     def receive(peer, buffer_siz=BUFFER_SIZE):
-        pass
+        """
+        Used to receive messages from other members.
+        """
 
     def check_timeouts(self):
         """
@@ -126,6 +130,9 @@ class Lab2():
         """
 
     def get_connection(self, member_pid):
+        """
+        Used to lookup the connections to other members.
+        """
         new_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # print(f" self.members_list[member_pid] {self.members_list[member_pid]}")
         new_socket.connect(self.members_list[member_pid])
@@ -141,7 +148,10 @@ class Lab2():
         return False
 
     def is_expired(self, peer=None, threshold=ASSUME_FAILURE_TIMEOUT):
-        pass
+        """
+        Checks my state to see if we are waiting
+        for the responses too long, then uses timeout.
+        """
 
     def set_leader(self, new_leader):
         """
@@ -178,12 +188,10 @@ class Lab2():
             # should be ready, but may be a failed connect instead
             self.send(peer, state.value, self.members_list)
 
-        except ConnectionError as err:  # TODO better exception handling later
+        except ConnectionError as err:
             print(f'error sending exiting send_msg {err}')
-            pass
-        except Exception as err:
-            print(f'error sending exiting send_msg {err}')
-            pass
+        # except Exception as err:
+        #     print(f'error sending exiting send_msg {err}')
 
         # check to see if we want to wait for response immediately
         if state == State.SEND_ELECTION:
@@ -193,6 +201,12 @@ class Lab2():
 
     def send(self, peer, message_name, message_data=None, wait_for_reply=False,
              buffer_size=BUFFER_SIZE):
+        """
+        Send the queued msg to the given peer (based on its current state
+
+        :param peer:
+        :return:
+        """
 
         if self.is_election_in_progress():
             message_name = self.get_state(self)
@@ -276,7 +290,7 @@ class Lab2():
         """Send COORDINATOR message to all nodes."""
 
     def update_members(self, their_idea_of_membership):
-        pass
+        """Update my state to reflect the current members."""
 
     @staticmethod
     def message(sock, send_data, buffer_size):
