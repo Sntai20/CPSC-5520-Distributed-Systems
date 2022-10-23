@@ -3,6 +3,7 @@ Forex Provider
 (c) all rights reserved
 This module implements a staging version the Forex Provider price feed on localhost.
 """
+import os
 import socket
 import selectors
 from datetime import datetime, timedelta
@@ -137,5 +138,8 @@ if __name__ == '__main__':
     #     print('Pick your own port for testing!')
     #     print('Modify REQUEST_ADDRESS above to use localhost and some random port')
     #     exit(1)
+    # Clearing the Screen
+    os.system('clear')
+
     fxp = ForexProvider(REQUEST_ADDRESS, TestPublisher)
     fxp.run_forever()
