@@ -38,7 +38,7 @@ class MessagingServiceSubscriber():
         """
         To subscribe to the price feed publisher, send your
         listening address to the forex provider.
-        
+
         Start up a subscriber, use the subscriber_address
         to bind the socket to the publishers address.
 
@@ -51,35 +51,22 @@ class MessagingServiceSubscriber():
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.bind(subscriber_address)  # subscriber binds the socket to the publishers address
             sock.setblocking(False)
-            
+
             # send the messages to current publisher.
             # self.subscribe_to_a_publisher()
             data = self.listening_address
-            print(f"Subscribe to the price feed, we will receive messages on address {self.listening_address}")
+            print(f"Subscribe, we will receive messages on address {self.listening_address}")
             message = fxp_bytes_subscriber.serialize_address(data)
             # marshal_message(data)
             print(f"Sending a SUBSCRIBE request message {message} to the Forex Provider.")
             # sock.send(message)
 
-            # while True:
-            #     print("\nblocking, waiting to receive message")
-            #     data = sock.recv(4096)
-
-            #     print(f"received {len(data)} bytes")
-            #     print(data)
-
-    # def subscribe_to_a_publisher(self):
-    #     """
-        # To subscribe to the price feed publisher, send your
-        # listening address to the forex provider.
-    #     """
-    #     data = self.listening_address
-    #     print(f"Subscribe to the price feed, we will receive messages on address {self.listening_address}")
-    #     fxp_bytes_subscriber.marshal_message(data)
-    
     def process_incoming_messages(self):
+        """
+        Process incoming messages using the listening address.
+        """
         print(f"Listening for incoming messages from the forex provider. {self.incoming_messages}")
-        
+
         while True:
             print("\nblocking, waiting to receive message")
             data = self.incoming_messages.recv(4096)
