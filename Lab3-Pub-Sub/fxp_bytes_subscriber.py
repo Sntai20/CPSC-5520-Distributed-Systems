@@ -4,24 +4,24 @@ This module contains useful marshalling functions for manipulating
 Forex Provider packet contents.
 """
 
-from array import array
+# from array import array
+import socket
 
-def serialize_address(subscriber_listening_address) -> bytes:
+def serialize_address(subscriber_listening_address: tuple) -> bytes:
     """
-    Convert the host, port address to a 6-byte sequence of bytes.
+    Convert the host, port address to a 6-byte sequence of bytes (a byte array).
     :param subscriber_listening_address: data to be converted.
     :return: bytes
     """
-    print(f"Convert this host {subscriber_listening_address[0]} port {subscriber_listening_address[1]} to an array of 6-bytes")
-    # subscriber_listening_address[0]
-    print(f"Convert this host {subscriber_listening_address[0]} to bytes")
-    port = subscriber_listening_address[1]
-    port_array = array('H', [int(port)])
-    # port_array.byteswap() # to little-endian
-    # port_array.tobytes()
-    # port_array.fromunicode(str(port))
-    print(f"Convert this port {subscriber_listening_address[1]} to {port_array.byteswap()} bytes {port_array.tobytes()}")
-    message = subscriber_listening_address
+    host_ip_in_bytes = socket.inet_aton(subscriber_listening_address[0])
+    print(f"Convert this host {subscriber_listening_address[0]} to bytes {host_ip_in_bytes}")
+
+    port_in_bytes = socket.inet_aton(str(subscriber_listening_address[1]))[2:]
+    print(f"Convert this port {subscriber_listening_address[1]} to bytes {port_in_bytes}")
+
+    # An array of 6-bytes.
+    message = host_ip_in_bytes + port_in_bytes
+
     return message
 
 def marshal_message(data_sequence) -> bytes:
