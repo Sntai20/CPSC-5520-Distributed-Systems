@@ -31,7 +31,7 @@ class MessagingServiceSubscriber:
         return: Print the messages received.
         """
         server_address = ('localhost', 10000)
-        print('starting up on {} port {}'.format(*server_address))
+        print(f"Starting up on address {server_address}")
 
         # Create a UDP socket
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
@@ -40,7 +40,7 @@ class MessagingServiceSubscriber:
                 print('\nblocking, waiting to receive message')
                 data = sock.recv(4096)
 
-                print('received {} bytes'.format(len(data)))
+                print(f"Received {len(data)} bytes")
                 print(data)
                 time.sleep(1.0)
 
