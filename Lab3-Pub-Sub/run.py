@@ -8,7 +8,7 @@ Simple program to run this lab.
 """
 
 import os
-import time
+# import time
 
 def run():
     """Simple program to run this lab."""
@@ -17,13 +17,13 @@ def run():
     os.system('clear')
 
     # Run the subscriber first.
-    filename = "subscriber"
+    filename = "lab3"
     print(f"\n\n\nStart of {filename}\n")
     print(f"python3 Lab3-Pub-Sub/{filename}.py >> log-{filename}.txt &")
     os.system(f'python3 Lab3-Pub-Sub/{filename}.py')
     print(f"\n\n\nEnd of {filename}\n\n\n")
 
-    filename = "publisher"
+    filename = "forex_provider_v2"
     print(f"\n\n\nStart of {filename}\n")
     print(f"python3 Lab3-Pub-Sub/{filename}.py")
     os.system(f'python3 Lab3-Pub-Sub/{filename}.py')
