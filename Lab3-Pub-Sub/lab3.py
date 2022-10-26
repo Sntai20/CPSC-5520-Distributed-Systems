@@ -71,24 +71,24 @@ class MessagingServiceSubscriber:
                 # print(incoming_data)
 
                 # Parse the individual quotes from the message.
-                """
-                Unmarshall the message [
-                {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
-                'cross': 'GBP/USD', 'price': 1.25052},
-                {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
-                'cross': 'EUR/USD', 'price': 1.10254},
-                {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
-                'cross': 'USD/JPY', 'price': 99.92674},
-                {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
-                'cross': 'AUD/USD', 'price': 0.74889},
-                {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
-                'cross': 'USD/CHF', 'price': 1.00142},
-                {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
-                'cross': 'CAD/CHF', 'price': 49.67480855959658},
-                {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
-                'cross': 'CAD/JPY', 'price': 198.6992342383863}
-                ] from the Forex Provider.
-                """
+
+                # Unmarshall the message [
+                # {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
+                # 'cross': 'GBP/USD', 'price': 1.25052},
+                # {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
+                # 'cross': 'EUR/USD', 'price': 1.10254},
+                # {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
+                # 'cross': 'USD/JPY', 'price': 99.92674},
+                # {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
+                # 'cross': 'AUD/USD', 'price': 0.74889},
+                # {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
+                # 'cross': 'USD/CHF', 'price': 1.00142},
+                # {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
+                # 'cross': 'CAD/CHF', 'price': 49.67480855959658},
+                # {'timestamp': datetime.datetime(2022, 10, 25, 20, 17, 48, 438084),
+                # 'cross': 'CAD/JPY', 'price': 198.6992342383863}
+                # ] from the Forex Provider.
+
                 messages = fxp_bytes_subscriber.unmarshall_message(incoming_data)
 
                 # print(f"Unmarshall the messages {messages} from the Forex Provider.")
@@ -134,5 +134,5 @@ if __name__ == '__main__':
     subscribe_thread.start()
 
     # Simple Pub/Sub test.
-    # subscriber_client_thread = threading.Thread(target=MessagingServiceSubscriber.subscriber_client)
-    # subscriber_client_thread.start()
+    # subscriber_cli_thread = threading.Thread(target=MessagingServiceSubscriber.subscriber_client)
+    # subscriber_cli_thread.start()
