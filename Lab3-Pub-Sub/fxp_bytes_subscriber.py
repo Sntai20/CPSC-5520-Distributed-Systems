@@ -5,7 +5,6 @@ Forex Provider packet contents.
 """
 
 from array import array
-# from datetime import datetime
 import datetime
 import socket
 
@@ -66,7 +65,7 @@ def deserialize_price(price_in_bytes: bytes) -> float:
     price = array('d')
     price.frombytes(price_in_bytes)
 
-    # print(f"{price[0]} Convert and store the price_in_bytes into the price array as a float value.")
+    # print(f"{price[0]} Convert and store the price_in_bytes into the price array.")
     return price[0]
 
 def unmarshall_message(b: bytes) -> list:
