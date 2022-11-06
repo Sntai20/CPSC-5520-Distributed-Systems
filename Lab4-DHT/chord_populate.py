@@ -19,6 +19,7 @@ REFERENCES:
 """
 
 import csv
+import hashlib
 import os
 
 class ChordPopulate:
@@ -44,12 +45,43 @@ class ChordPopulate:
 
     def read_file(self):
         """
-        Reads a file.
+        Reads a file with the following fieldnames in the first row:
+        Player Id,Name,Position,Year,Team,Games Played,Passes Attempted,Passes Completed,
+        Completion Percentage,Pass Attempts Per Game,Passing Yards,Passing Yards Per Attempt,
+        Passing Yards Per Game,TD Passes,Percentage of TDs per Attempts,Ints,Int Rate,
+        Longest Pass,Passes Longer than 20 Yards,Passes Longer than 40 Yards,Sacks,
+        Sacked Yards Lost,Passer Rating
         """
         with open(f"{self.absolute_file_path}", newline='', encoding='utf-8') as csvfile:
-            spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
-            for row in spamreader:
-                print(', '.join(row))
+            # reader = csv.DictReader(csvfile, delimiter=' ', quotechar='|')
+            reader = csv.DictReader(csvfile)
+            # print(reader.fieldnames)
+            for row in reader:
+                # print(row['Player Id'], row['Year'])
+                # self.hash_something(row['Player Id'], row['Year'])
+                player_id = row['Player Id']
+                year = row['Year']
+                key = hashlib.sha1()
+                key.update(f'{player_id}'.encode('ASCII'))
+                key.update(f'{year}'.encode('ASCII'))
+                key.hexdigest()
+                player_id_year = (player_id + year)
+                print(f"Sha1 Hash {key.hexdigest()} = Player Id + Year {player_id_year}")
+
+    # def hash_something(self, player_id, year):
+    #     """
+    #     Treat the value in the first column (playerid) concatenated
+    #     with the fourth column (year) as the key and use SHA-1 to hash it.
+    #     """
+    #     key = player_id + year
+
+    #     hash_object = hashlib.sha1(b"key")
+    #     # pbHash = hash_object.hexdigest()
+    #     # length = len(pbHash.decode("hex"))
+    #     # print(length)
+    #     print(f"Key {key} {hash_object.hexdigest()}")
+    #     # hash(key)
+    #     # print(f"Hash {hash(key)} = {key}")
 
 if __name__ == '__main__':
     # Clearing the Screen
