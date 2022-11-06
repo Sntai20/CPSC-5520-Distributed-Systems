@@ -354,3 +354,6 @@ MigrationBackup/
 
 # Local log file.
 *log-gcd2.txt
+
+# Python Windows Visual Studio Enviroment Folder
+env/
