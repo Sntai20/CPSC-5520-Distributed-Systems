@@ -25,9 +25,9 @@ import os
 class ChordPopulate:
     "Methods to interface with the data."
     def __init__(self):
-        Career_Stats_Dictionary = dict()
+        self.node_data_set_dictionary = dict()
         self.absolute_file_path = self.find_file()
-        Career_Stats_Dictionary = self.read_file()
+        self.read_file()
 
     def find_file(self):
         """
@@ -57,21 +57,23 @@ class ChordPopulate:
         in each row to a dict whose keys are given by the optional fieldnames parameter.
         """
         with open(f"{self.absolute_file_path}", newline='', encoding='utf-8') as csvfile:
-            # reader = csv.DictReader(csvfile, delimiter=' ', quotechar='|')
-            #reader = csv.DictReader(csvfile)
-            return csv.DictReader(csvfile)
-            # print(reader.fieldnames)
-            # for row in reader:
-                # print(row['Player Id'], row['Year'])
-                # this one self.hash_something(row['Player Id'], row['Year'])
-                #player_id = row['Player Id']
-                #year = row['Year']
-                #key = hashlib.sha1()
-                #key.update(f'{player_id}'.encode('ASCII'))
-                #key.update(f'{year}'.encode('ASCII'))
-                #key.hexdigest()
-                #player_id_year = (player_id + year)
-                #print(f"Sha1 Hash {key.hexdigest()} = Player Id + Year {player_id_year}")
+            reader = csv.DictReader(csvfile)
+            node_id = 0
+
+            for row in reader:
+                node_id +=1
+                row['Node Id'] = node_id
+                node_port_number = (node_id + 4000)
+                row['Node Port'] = node_port_number
+                node_key = self.hash_something(row['Player Id'], row['Year'])
+                self.node_data_set_dictionary[node_key] = row
+
+    def print_dictionary(self):
+        for k, v in self.node_data_set_dictionary.items():
+            print(f"Key {k} Node Id: {v['Node Id']} Node Port: {v['Node Port']} Player Id: {v['Player Id']} Year: {v['Year']}")
+
+    def find_node(self):
+        print(f'Find node d55607515a6c96f2ff50b87a62d26e5ce18e2e07 : {self.node_data_set_dictionary.get("d55607515a6c96f2ff50b87a62d26e5ce18e2e07")}')
 
     def hash_something(self, player_id, year):
         """
@@ -81,12 +83,14 @@ class ChordPopulate:
         key = hashlib.sha1()
         key.update(f'{player_id}'.encode('ASCII'))
         key.update(f'{year}'.encode('ASCII'))
-        key.hexdigest()
-        player_id_year = (player_id + year)
-        print(f"Sha1 Hash {key.hexdigest()} = Player Id + Year {player_id_year}")
+        return key.hexdigest()
+        # player_id_year = (player_id + year)
+        # print(f"Sha1 Hash {key.hexdigest()} = Player Id + Year {player_id_year}")
 
 if __name__ == '__main__':
     # Clearing the Screen
     os.system('clear')
 
     chord_populate = ChordPopulate()
+    chord_populate.print_dictionary()
+    chord_populate.find_node()
