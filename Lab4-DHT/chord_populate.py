@@ -5,7 +5,7 @@ FILE: chord_populate.py
 DESCRIPTION:
     This program demonstrates populates data from CSV file into network of nodes correctly.
     Support adding a new data value to the network, given (key, value) via any active node.
-    Add must be efficient, make use of predecessor, successor, and finger tables as 
+    Add must be efficient, make use of predecessor, successor, and finger tables as
     appropriate using key SHA1 hash and recursive RPC.
 
     chord_populate takes a port number of an existing node and the filename of the data file.
@@ -25,6 +25,7 @@ import os
 class ChordPopulate:
     "Methods to interface with the data."
     def __init__(self):
+        self.node_data_set_dictionary = dict()
         self.absolute_file_path = self.find_file()
         self.read_file()
 
@@ -51,40 +52,48 @@ class ChordPopulate:
         Passing Yards Per Game,TD Passes,Percentage of TDs per Attempts,Ints,Int Rate,
         Longest Pass,Passes Longer than 20 Yards,Passes Longer than 40 Yards,Sacks,
         Sacked Yards Lost,Passer Rating
+
+        Create an object that operates like a regular reader but maps the information
+        in each row to a dict whose keys are given by the optional fieldnames parameter.
         """
         with open(f"{self.absolute_file_path}", newline='', encoding='utf-8') as csvfile:
-            # reader = csv.DictReader(csvfile, delimiter=' ', quotechar='|')
             reader = csv.DictReader(csvfile)
-            # print(reader.fieldnames)
+            node_id = 0
+
             for row in reader:
-                # print(row['Player Id'], row['Year'])
-                # self.hash_something(row['Player Id'], row['Year'])
-                player_id = row['Player Id']
-                year = row['Year']
-                key = hashlib.sha1()
-                key.update(f'{player_id}'.encode('ASCII'))
-                key.update(f'{year}'.encode('ASCII'))
-                key.hexdigest()
-                player_id_year = (player_id + year)
-                print(f"Sha1 Hash {key.hexdigest()} = Player Id + Year {player_id_year}")
+                node_id +=1
+                row['Node Id'] = node_id
+                node_port_number = (node_id + 4000)
+                node_address = f"localhost{node_port_number}"
+                row['Node Port'] = node_port_number
+                # node’s key is a sha1-hash made from the string of its (endpoint address (IP, port number) + node_id)
+                node_key = self.hash_something(node_address, node_id)
+                # data_key = self.hash_something(row['Player Id'], row['Year'])
+                self.node_data_set_dictionary[node_key] = row
 
-    # def hash_something(self, player_id, year):
-    #     """
-    #     Treat the value in the first column (playerid) concatenated
-    #     with the fourth column (year) as the key and use SHA-1 to hash it.
-    #     """
-    #     key = player_id + year
+    def print_dictionary(self):
+        for k, v in self.node_data_set_dictionary.items():
+            print(f"Node Key {k} Node Id: {v['Node Id']} Node Port: {v['Node Port']} Player Id: {v['Player Id']} Year: {v['Year']}")
 
-    #     hash_object = hashlib.sha1(b"key")
-    #     # pbHash = hash_object.hexdigest()
-    #     # length = len(pbHash.decode("hex"))
-    #     # print(length)
-    #     print(f"Key {key} {hash_object.hexdigest()}")
-    #     # hash(key)
-    #     # print(f"Hash {hash(key)} = {key}")
+    def find_node(self):
+        print(f'Find node 9c92a752712a0c71bab443917237bd97009fb27f : {self.node_data_set_dictionary.get("9c92a752712a0c71bab443917237bd97009fb27f")}')
+
+    def hash_something(self, player_id, year):
+        """
+        Treat the value in the first column (playerid) concatenated
+        with the fourth column (year) as the key and use SHA-1 to hash it.
+        """
+        key = hashlib.sha1()
+        key.update(f'{player_id}'.encode('ASCII'))
+        key.update(f'{year}'.encode('ASCII'))
+        return key.hexdigest()
+        # player_id_year = (player_id + year)
+        # print(f"Sha1 Hash {key.hexdigest()} = Player Id + Year {player_id_year}")
 
 if __name__ == '__main__':
     # Clearing the Screen
     os.system('clear')
 
     chord_populate = ChordPopulate()
+    chord_populate.print_dictionary()
+    chord_populate.find_node()
