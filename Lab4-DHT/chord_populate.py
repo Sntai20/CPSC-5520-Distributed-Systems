@@ -5,7 +5,7 @@ FILE: chord_populate.py
 DESCRIPTION:
     This program demonstrates populates data from CSV file into network of nodes correctly.
     Support adding a new data value to the network, given (key, value) via any active node.
-    Add must be efficient, make use of predecessor, successor, and finger tables as 
+    Add must be efficient, make use of predecessor, successor, and finger tables as
     appropriate using key SHA1 hash and recursive RPC.
 
     chord_populate takes a port number of an existing node and the filename of the data file.
@@ -64,16 +64,19 @@ class ChordPopulate:
                 node_id +=1
                 row['Node Id'] = node_id
                 node_port_number = (node_id + 4000)
+                node_address = f"localhost{node_port_number}"
                 row['Node Port'] = node_port_number
-                node_key = self.hash_something(row['Player Id'], row['Year'])
+                # node’s key is a sha1-hash made from the string of its (endpoint address (IP, port number) + node_id)
+                node_key = self.hash_something(node_address, node_id)
+                # data_key = self.hash_something(row['Player Id'], row['Year'])
                 self.node_data_set_dictionary[node_key] = row
 
     def print_dictionary(self):
         for k, v in self.node_data_set_dictionary.items():
-            print(f"Key {k} Node Id: {v['Node Id']} Node Port: {v['Node Port']} Player Id: {v['Player Id']} Year: {v['Year']}")
+            print(f"Node Key {k} Node Id: {v['Node Id']} Node Port: {v['Node Port']} Player Id: {v['Player Id']} Year: {v['Year']}")
 
     def find_node(self):
-        print(f'Find node d55607515a6c96f2ff50b87a62d26e5ce18e2e07 : {self.node_data_set_dictionary.get("d55607515a6c96f2ff50b87a62d26e5ce18e2e07")}')
+        print(f'Find node 9c92a752712a0c71bab443917237bd97009fb27f : {self.node_data_set_dictionary.get("9c92a752712a0c71bab443917237bd97009fb27f")}')
 
     def hash_something(self, player_id, year):
         """

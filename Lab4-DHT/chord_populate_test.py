@@ -18,13 +18,20 @@ class TestChordPopulateMethods(unittest.TestCase):
 
     def test_read_file(self):
         # Arrange
-        cp = chord_populate.ChordPopulate()
+        chord_populate_implementation = chord_populate.ChordPopulate()
+        key = '9c92a752712a0c71bab443917237bd97009fb27f'
+        steveramsey_dictionary = chord_populate_implementation.node_data_set_dictionary[key]
 
         # Act
-        something_to_store_the_file_contents = cp.read_file()
+        first_value = 'steveramsey/2523725'
+        second_value = steveramsey_dictionary['Player Id']
+
+        # error message in case if test case got failed
+        message = "First value and second value are not equal !"
 
         # Assert
-        self.assertTrue(something_to_store_the_file_contents)
+        # assertEqual() to check equality of first & second value
+        self.assertEqual(first_value, second_value, message)
 
 if __name__ == '__main__':
     unittest.main()

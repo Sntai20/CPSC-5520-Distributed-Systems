@@ -171,9 +171,10 @@ class ChordNode():
         Ask this node to find id's successor = successor(predecessor(id)).
         """
         print("find_successor")
+        
         # np = self.find_predecessor(id)
         # return self.call_rpc(np, 'successor')
-        return
+        return self.finger[id].node
 
     def find_predecessor(self, id):
         """
@@ -205,4 +206,4 @@ class ChordNode():
 
 if __name__ == '__main__':
     chord_node = ChordNode(0)
-    chord_node.find_successor(1)
+    # chord_node.find_successor(1)
