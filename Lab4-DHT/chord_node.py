@@ -3,14 +3,11 @@ STUDENT: Antonio Santana
 FILE: chord_node.py
 
 DESCRIPTION:
-    This program demonstrates common scenarios like instantiating a client,
-    creating a queue, and sending and receiving messages.
-
-    chord_node takes a port number of an existing node (or 0 to indicate it
-    should start a new network). This program joins a new node into the network
-    using a system-assigned port number for itself. The node joins and then
-    listens for incoming connections (other nodes or queriers). You can use
-    blocking TCP for this and pickle for the marshaling.
+    This program demonstrates a chord_node takes a port number of an existing
+    node (or 0 to indicate it should start a new network). This program joins
+    a new node into the network using a system-assigned port number for itself.
+    The node joins and then listens for incoming connections (other nodes or 
+    queriers). You can use blocking TCP for this and pickle for the marshaling.
 
 USAGE:
     python3 chord_node.py

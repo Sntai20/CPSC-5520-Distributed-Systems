@@ -7,7 +7,8 @@ DESCRIPTION:
     an existing node and a key (any value from column 1+4 of the file).
 
 USAGE:
-    python3 chord_query.py
+    python3 chord_query.py "Node_Port_Number" "Player_Id" "year"
+    python3 chord_query.py 12517 steveramsey/2523725 1970
 
 """
 import hashlib
@@ -54,8 +55,9 @@ class ChordQuery():
 
 if __name__ == '__main__':
     chord_query = ChordQuery()
-    # This is test data for now.
     port_number = 12517
     player_id = 'steveramsey/2523725'
     year = 1970
+    print("chord_query.py <Node_Port_Number> <Player_Id> <year>")
+    print(f"chord_query.py {port_number} {player_id} {year} This is test data for now.\n")
     chord_query.find_player(port_number, player_id, year)
