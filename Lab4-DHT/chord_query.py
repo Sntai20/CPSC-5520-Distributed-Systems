@@ -25,12 +25,6 @@ class ChordQuery():
         # made from the string of its endpoint address IP + port number
         # node_port_number = port_number
         node_ip = "localhost"
-        # node_address = f"{node_ip}{node_port_number}"
-        # node_id = node_port_number - 4000
-        # node’s key is a sha1-hash made from the string of its (endpoint address (IP, port number) + node_id)
-        # node_key = self.hash(node_address, node_id)
-        # rpc to find query the node using the node key and the data key
-        # player_data_dictionary = get_data_from_node(node_ip, node_port_number, search_key)
         self.find_data(node_ip, node_port_number, search_key)
 
     def find_data(self, node_ip, node_port_number, search_key):

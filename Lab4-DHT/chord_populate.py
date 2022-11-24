@@ -3,15 +3,15 @@ STUDENT: Antonio Santana
 FILE: chord_populate.py
 
 DESCRIPTION:
-    This program demonstrates populates data from CSV file into network of nodes correctly.
+    This program populates data from CSV file into network of nodes correctly.
     Support adding a new data value to the network, given (key, value) via any active node.
     Add must be efficient, make use of predecessor, successor, and finger tables as
     appropriate using key SHA1 hash and recursive RPC.
 
-    chord_populate takes a port number of an existing node and the filename of the data file.
+    chord_populate takes a port number of an existing node and reads the Career_Stats_Passing.csv filename in the current working directory.
 
 USAGE:
-    python3 chord_populate.py
+    python3 chord_populate.py 
 
 REFERENCES:
     Read a csv file. https://docs.python.org/3/library/csv.html
@@ -67,7 +67,7 @@ class ChordPopulate:
                 node_address = f"localhost{node_port_number}"
                 row['Node Port'] = node_port_number
                 # node’s key is a sha1-hash made from the string of its (endpoint address (IP, port number) + node_id)
-                node_key = self.hash_something(node_address, node_id)
+                node_key = self.hash(node_address, node_id)
                 # data_key = self.hash_something(row['Player Id'], row['Year'])
                 self.node_data_set_dictionary[node_key] = row
 
@@ -77,8 +77,11 @@ class ChordPopulate:
 
     def find_node(self):
         print(f'Find node 9c92a752712a0c71bab443917237bd97009fb27f : {self.node_data_set_dictionary.get("9c92a752712a0c71bab443917237bd97009fb27f")}')
+        print(f'Find node efe27b75e73d014c158e18e31f72dca1c61590af : {self.node_data_set_dictionary.get("efe27b75e73d014c158e18e31f72dca1c61590af")}')
+        print(f'Find node d9a2a48df7f1268e286fcb6db02f542d7037ee77 : {self.node_data_set_dictionary.get("d9a2a48df7f1268e286fcb6db02f542d7037ee77")}')
+        print(f'Find node 2c4b6b8054ff3cbf5d240c991e92ca042c815d21 : {self.node_data_set_dictionary.get("2c4b6b8054ff3cbf5d240c991e92ca042c815d21")}')
 
-    def hash_something(self, player_id, year):
+    def hash(self, player_id, year):
         """
         Treat the value in the first column (playerid) concatenated
         with the fourth column (year) as the key and use SHA-1 to hash it.
@@ -96,4 +99,3 @@ if __name__ == '__main__':
 
     chord_populate = ChordPopulate()
     chord_populate.print_dictionary()
-    chord_populate.find_node()
