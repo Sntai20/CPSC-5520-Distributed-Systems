@@ -12,3 +12,6 @@ pytest
 
 # Azure Storage SDK v12 for Python
 azure-storage-queue
+
+# Bitcoin Lab
+dnspython
