@@ -9,6 +9,11 @@ DESCRIPTION:
 USAGE:
     python3 lab5.py
 
+CODE ORGANIZATION:
+    # Messages Section:
+    # Node Section:
+    # Helpers Section:
+    # Main Section:
 """
 import hashlib
 import os
@@ -16,6 +21,81 @@ import socket
 import time
 from io import BytesIO
 from random import randint
+
+HDR_SZ = 24
+NETWORK_MAGIC = b'\xf9\xbe\xb4\xd9'
+TESTNET_NETWORK_MAGIC = b'\x0b\x11\x09\x07'
+
+# Messages Section: Start
+class NetworkEnvelope:
+    """
+    Network message container.
+    """
+    def __init__(self, command, payload, testnet=False):
+        self.command = command
+        self.payload = payload
+        if testnet:
+            self.magic = TESTNET_NETWORK_MAGIC
+        else:
+            self.magic = NETWORK_MAGIC
+
+    def __repr__(self):
+        return f"{self.command.decode('ascii')}: {self.payload.hex()}"
+
+    @classmethod
+    def parse(cls, s, testnet=False):
+        """
+        Takes a stream and creates a NetworkEnvelope.
+        return an instance of the class
+        """
+        # check the network magic
+        magic = s.read(4)
+        if magic == b'':
+            raise RuntimeError('Connection reset!')
+        if testnet:
+            expected_magic = TESTNET_NETWORK_MAGIC
+        else:
+            expected_magic = NETWORK_MAGIC
+        if magic != expected_magic:
+            raise RuntimeError(f'magic is not right {magic.hex()} vs {expected_magic.hex()}')
+        # command 12 bytes
+        command = s.read(12)
+        # strip the trailing 0's
+        command = command.strip(b'\x00')
+        # payload length 4 bytes, little endian
+        payload_length = little_endian_to_int(s.read(4))
+        # checksum 4 bytes, first four of hash256 of payload
+        checksum = s.read(4)
+        # payload is of length payload_length
+        payload = s.read(payload_length)
+        # verify checksum
+        calculated_checksum = hash256(payload)[:4]
+        if calculated_checksum != checksum:
+            raise RuntimeError('checksum does not match')
+        return cls(command, payload, testnet=testnet)
+
+    def serialize(self):
+        """
+        Returns the byte serialization of the entire network message.
+        """
+        # add the network magic
+        result = self.magic
+        # command 12 bytes
+        # fill with 0's
+        result += self.command + b'\x00' * (12 - len(self.command))
+        # payload length 4 bytes, little endian
+        result += int_to_little_endian(len(self.payload), 4)
+        # checksum 4 bytes, first four of hash256 of payload
+        result += hash256(self.payload)[:4]
+        # payload
+        result += self.payload
+        return result
+
+    def stream(self):
+        """
+        Returns a stream for parsing the payload.
+        """
+        return BytesIO(self.payload)
 
 class VersionMessage:
     """
@@ -110,15 +190,17 @@ class VerAckMessage:
 
     @classmethod
     def parse(cls, s):
+        """Parse the verack stream."""
         return cls()
 
     def serialize(self):
+        """Serialize the verack command."""
         return b''
 
 class GetHeadersMessage:
     """
     Get Headers Message class to define the getheaders command.
-    TODO: Which version are we using? 70015 is the latest verion.
+    We are we using the latest version, 70015.
     https://developer.bitcoin.org/reference/p2p_networking.html#protocol-versions
     """
     command = b'getheaders'
@@ -185,14 +267,12 @@ class GetDataMessage:
         self.data = []
 
     def add_data(self, data_type, identifier):
-        """
-        Appends the data.
-        """
+        """Appends the data."""
         self.data.append((data_type, identifier))
 
     def serialize(self):
         """
-        start with the number of items as a varint
+        Start with the number of items as a varint.
         """
         result = encode_varint(len(self.data))
         # loop through each tuple (data_type, identifier) in self.data
@@ -202,97 +282,9 @@ class GetDataMessage:
             # identifier needs to be in Little-Endian
             result += identifier[::-1]
         return result
+# Messages Section: Stop
 
-class GenericMessage:
-    """
-    Generic Message.
-    """
-    def __init__(self, command, payload):
-        self.command = command
-        self.payload = payload
-
-    def serialize(self):
-        return self.payload
-
-HDR_SZ = 24
-TX_DATA_TYPE = 1
-BLOCK_DATA_TYPE = 2
-FILTERED_BLOCK_DATA_TYPE = 3
-COMPACT_BLOCK_DATA_TYPE = 4
-
-NETWORK_MAGIC = b'\xf9\xbe\xb4\xd9'
-TESTNET_NETWORK_MAGIC = b'\x0b\x11\x09\x07'
-
-class NetworkEnvelope:
-    """
-    Network message container.
-    """
-    def __init__(self, command, payload, testnet=False):
-        self.command = command
-        self.payload = payload
-        if testnet:
-            self.magic = TESTNET_NETWORK_MAGIC
-        else:
-            self.magic = NETWORK_MAGIC
-
-    def __repr__(self):
-        return f"{self.command.decode('ascii')}: {self.payload.hex()}"
-
-    @classmethod
-    def parse(cls, s, testnet=False):
-        """
-        Takes a stream and creates a NetworkEnvelope.
-        return an instance of the class
-        """
-        # check the network magic
-        magic = s.read(4)
-        if magic == b'':
-            raise RuntimeError('Connection reset!')
-        if testnet:
-            expected_magic = TESTNET_NETWORK_MAGIC
-        else:
-            expected_magic = NETWORK_MAGIC
-        if magic != expected_magic:
-            raise RuntimeError(f'magic is not right {magic.hex()} vs {expected_magic.hex()}')
-        # command 12 bytes
-        command = s.read(12)
-        # strip the trailing 0's
-        command = command.strip(b'\x00')
-        # payload length 4 bytes, little endian
-        payload_length = little_endian_to_int(s.read(4))
-        # checksum 4 bytes, first four of hash256 of payload
-        checksum = s.read(4)
-        # payload is of length payload_length
-        payload = s.read(payload_length)
-        # verify checksum
-        calculated_checksum = hash256(payload)[:4]
-        if calculated_checksum != checksum:
-            raise RuntimeError('checksum does not match')
-        return cls(command, payload, testnet=testnet)
-
-    def serialize(self):
-        """
-        Returns the byte serialization of the entire network message.
-        """
-        # add the network magic
-        result = self.magic
-        # command 12 bytes
-        # fill with 0's
-        result += self.command + b'\x00' * (12 - len(self.command))
-        # payload length 4 bytes, little endian
-        result += int_to_little_endian(len(self.payload), 4)
-        # checksum 4 bytes, first four of hash256 of payload
-        result += hash256(self.payload)[:4]
-        # payload
-        result += self.payload
-        return result
-
-    def stream(self):
-        """
-        Returns a stream for parsing the payload.
-        """
-        return BytesIO(self.payload)
-
+# Node Section: Start
 class Node:
     """
     Node to manage the communication.
@@ -483,8 +475,9 @@ class Node:
         Converts an IPv6 address to IPv4.
         """
         return '.'.join([str(b) for b in ipv6[12:]])
+# Node Section: Stop
 
-# Helpers
+# Helpers Section: Start
 def ipv6_from_ipv4(ipv4_str):
     """
     Converts an IPv4 address to IPv6.
@@ -544,7 +537,9 @@ def encode_varint(i):
         return b'\xff' + int_to_little_endian(i, 8)
     else:
         raise ValueError('integer too large: {}'.format(i))
+# Helpers Section: Stop
 
+# Main Section:
 if __name__ == '__main__':
     os.system('clear')
     SOURCE_HOST = "127.0.0.1"
