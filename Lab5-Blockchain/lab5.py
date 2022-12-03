@@ -26,6 +26,120 @@ HDR_SZ = 24
 NETWORK_MAGIC = b'\xf9\xbe\xb4\xd9'
 TESTNET_NETWORK_MAGIC = b'\x0b\x11\x09\x07'
 
+GENESIS_BLOCK = bytes.fromhex('0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c')
+TESTNET_GENESIS_BLOCK = bytes.fromhex('0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4adae5494dffff001d1aa4ae18')
+LOWEST_BITS = bytes.fromhex('ffff001d')
+
+TWO_WEEKS = 60 * 60 * 24 * 14
+MAX_TARGET = 0xffff * 256**(0x1d - 3)
+
+class Block:
+
+    def __init__(self, version, prev_block, merkle_root,
+                 timestamp, bits, nonce, tx_hashes=None):
+        self.version = version
+        self.prev_block = prev_block
+        self.merkle_root = merkle_root
+        self.timestamp = timestamp
+        self.bits = bits
+        self.nonce = nonce
+        self.tx_hashes = tx_hashes
+
+    @classmethod
+    def parse(cls, s):
+        '''Takes a byte stream and parses a block. Returns a Block object'''
+        # s.read(n) will read n bytes from the stream
+        # version - 4 bytes, little endian, interpret as int
+        version = little_endian_to_int(s.read(4))
+        # prev_block - 32 bytes, little endian (use [::-1] to reverse)
+        prev_block = s.read(32)[::-1]
+        # merkle_root - 32 bytes, little endian (use [::-1] to reverse)
+        merkle_root = s.read(32)[::-1]
+        # timestamp - 4 bytes, little endian, interpret as int
+        timestamp = little_endian_to_int(s.read(4))
+        # bits - 4 bytes
+        bits = s.read(4)
+        # nonce - 4 bytes
+        nonce = s.read(4)
+        # initialize class
+        return cls(version, prev_block, merkle_root, timestamp, bits, nonce)
+
+    def serialize(self):
+        '''Returns the 80 byte block header'''
+        # version - 4 bytes, little endian
+        result = int_to_little_endian(self.version, 4)
+        # prev_block - 32 bytes, little endian
+        result += self.prev_block[::-1]
+        # merkle_root - 32 bytes, little endian
+        result += self.merkle_root[::-1]
+        # timestamp - 4 bytes, little endian
+        result += int_to_little_endian(self.timestamp, 4)
+        # bits - 4 bytes
+        result += self.bits
+        # nonce - 4 bytes
+        result += self.nonce
+        return result
+
+    def hash(self):
+        '''Returns the hash256 interpreted little endian of the block'''
+        # serialize
+        s = self.serialize()
+        # hash256
+        h256 = hash256(s)
+        # reverse
+        return h256[::-1]
+
+    def bip9(self):
+        '''Returns whether this block is signaling readiness for BIP9'''
+        # BIP9 is signalled if the top 3 bits are 001
+        # remember version is 32 bytes so right shift 29 (>> 29) and see if
+        # that is 001
+        return self.version >> 29 == 0b001
+
+    def bip91(self):
+        '''Returns whether this block is signaling readiness for BIP91'''
+        # BIP91 is signalled if the 5th bit from the right is 1
+        # shift 4 bits to the right and see if the last bit is 1
+        return self.version >> 4 & 1 == 1
+
+    def bip141(self):
+        '''Returns whether this block is signaling readiness for BIP141'''
+        # BIP91 is signalled if the 2nd bit from the right is 1
+        # shift 1 bit to the right and see if the last bit is 1
+        return self.version >> 1 & 1 == 1
+
+    def target(self):
+        '''Returns the proof-of-work target based on the bits'''
+        return bits_to_target(self.bits)
+
+    def difficulty(self):
+        '''Returns the block difficulty based on the bits'''
+        # note difficulty is (target of lowest difficulty) / (self's target)
+        # lowest difficulty has bits that equal 0xffff001d
+        lowest = 0xffff * 256**(0x1d - 3)
+        return lowest / self.target()
+
+    def check_pow(self):
+        '''Returns whether this block satisfies proof of work'''
+        # get the hash256 of the serialization of this block
+        h256 = hash256(self.serialize())
+        # interpret this hash as a little-endian number
+        proof = little_endian_to_int(h256)
+        # return whether this integer is less than the target
+        return proof < self.target()
+
+    def validate_merkle_root(self):
+        '''Gets the merkle root of the tx_hashes and checks that it's
+        the same as the merkle root of this block.
+        '''
+        # reverse each item in self.tx_hashes
+        hashes = [h[::-1] for h in self.tx_hashes]
+        # compute the Merkle Root and reverse
+        root = merkle_root(hashes)[::-1]
+        # return whether self.merkle_root is the same
+        return root == self.merkle_root
+
+
 # Messages Section: Start
 class NetworkEnvelope:
     """
@@ -197,6 +311,33 @@ class VerAckMessage:
         """Serialize the verack command."""
         return b''
 
+class PingMessage:
+    command = b'ping'
+
+    def __init__(self, nonce):
+        self.nonce = nonce
+
+    @classmethod
+    def parse(cls, s):
+        nonce = s.read(8)
+        return cls(nonce)
+
+    def serialize(self):
+        return self.nonce
+
+class PongMessage:
+    command = b'pong'
+
+    def __init__(self, nonce):
+        self.nonce = nonce
+
+    def parse(cls, s):
+        nonce = s.read(8)
+        return cls(nonce)
+
+    def serialize(self):
+        return self.nonce
+
 class GetHeadersMessage:
     """
     Get Headers Message class to define the getheaders command.
@@ -333,8 +474,10 @@ class Node:
             testnet=self.testnet)
         if self.logging:
             print(f'\nSending Network Message: {envelope}.\n')
-            if envelope.command == VersionMessage.command:
-                print(self.print_version_msg(envelope.payload))
+            print(self.print_message(envelope.serialize()))
+            # if envelope.command == VersionMessage.command:
+                # print(self.print_version_msg(envelope.payload))
+                # print(self.print_message(envelope.payload))
         self.socket.sendall(envelope.serialize())
 
     def read(self):
@@ -365,6 +508,9 @@ class Node:
             if command == VersionMessage.command:
                 # send verack
                 self.send(VerAckMessage())
+            # elif command == PingMessage.command:
+            #     # send pong
+            #     self.send(PongMessage(envelope.payload))
         return command_to_class[command].parse(envelope.stream())
 
     def print_version_msg(self, b):
@@ -478,6 +624,15 @@ class Node:
 # Node Section: Stop
 
 # Helpers Section: Start
+def checksum(payload: bytes):
+    """
+    Calculate Bitcoin protocol checksum - first 4 bytes of
+    sha256(sha256(payload)).
+    :param payload: payload bytes
+    :return: checksum
+    """
+    return hash256(payload)[:4]
+
 def ipv6_from_ipv4(ipv4_str):
     """
     Converts an IPv4 address to IPv6.
@@ -537,15 +692,137 @@ def encode_varint(i):
         return b'\xff' + int_to_little_endian(i, 8)
     else:
         raise ValueError('integer too large: {}'.format(i))
+
+def target_to_bits(target):
+    '''Turns a target integer back into bits, which is 4 bytes'''
+    raw_bytes = target.to_bytes(32, 'big')
+    # get rid of leading 0's
+    raw_bytes = raw_bytes.lstrip(b'\x00')
+    if raw_bytes[0] > 0x7f:
+        # if the first bit is 1, we have to start with 00
+        exponent = len(raw_bytes) + 1
+        coefficient = b'\x00' + raw_bytes[:2]
+    else:
+        # otherwise, we can show the first 3 bytes
+        # exponent is the number of digits in base-256
+        exponent = len(raw_bytes)
+        # coefficient is the first 3 digits of the base-256 number
+        coefficient = raw_bytes[:3]
+    # we've truncated the number after the first 3 digits of base-256
+    new_bits = coefficient[::-1] + bytes([exponent])
+    return new_bits
+
+def calculate_new_bits(previous_bits, time_differential):
+    '''Calculates the new bits given
+    a 2016-block time differential and the previous bits'''
+    # if the time differential is greater than 8 weeks, set to 8 weeks
+    if time_differential > TWO_WEEKS * 4:
+        time_differential = TWO_WEEKS * 4
+    # if the time differential is less than half a week, set to half a week
+    if time_differential < TWO_WEEKS // 4:
+        time_differential = TWO_WEEKS // 4
+    # the new target is the previous target * time differential / two weeks
+    new_target = bits_to_target(previous_bits) * time_differential // TWO_WEEKS
+    # if the new target is bigger than MAX_TARGET, set to MAX_TARGET
+    if new_target > MAX_TARGET:
+        new_target = MAX_TARGET
+    # convert the new target to bits
+    return target_to_bits(new_target)
+
+def merkle_parent(hash1, hash2):
+    '''Takes the binary hashes and calculates the hash256'''
+    # return the hash256 of hash1 + hash2
+    return hash256(hash1 + hash2)
+
+def merkle_parent_level(hashes):
+    '''Takes a list of binary hashes and returns a list that's half
+    the length'''
+    # if the list has exactly 1 element raise an error
+    if len(hashes) == 1:
+        raise RuntimeError('Cannot take a parent level with only 1 item')
+    # if the list has an odd number of elements, duplicate the last one
+    # and put it at the end so it has an even number of elements
+    if len(hashes) % 2 == 1:
+        hashes.append(hashes[-1])
+    # initialize next level
+    parent_level = []
+    # loop over every pair (use: for i in range(0, len(hashes), 2))
+    for i in range(0, len(hashes), 2):
+        # get the merkle parent of the hashes at index i and i+1
+        parent = merkle_parent(hashes[i], hashes[i + 1])
+        # append parent to parent level
+        parent_level.append(parent)
+    # return parent level
+    return parent_level
+
+def merkle_root(hashes):
+    '''Takes a list of binary hashes and returns the merkle root
+    '''
+    # current level starts as hashes
+    current_level = hashes
+    # loop until there's exactly 1 element
+    while len(current_level) > 1:
+        # current level becomes the merkle parent level
+        current_level = merkle_parent_level(current_level)
+    # return the 1st item of the current level
+    return current_level[0]
+
+def bits_to_target(bits):
+    '''Turns bits into a target (large 256-bit integer)'''
+    # last byte is exponent
+    exponent = bits[-1]
+    # the first three bytes are the coefficient in little endian
+    coefficient = little_endian_to_int(bits[:-1])
+    # the formula is:
+    # coefficient * 256**(exponent-3)
+    return coefficient * 256**(exponent - 3)
+
+def clear_screen():
+    """Define our clear function for Windows, Mac, and Linux."""
+    # for windows
+    if os.name == 'nt':
+        _ = os.system('cls')
+ 
+    # for mac and linux(here, os.name is 'posix')
+    else:
+        _ = os.system('clear')
 # Helpers Section: Stop
 
 # Main Section:
 if __name__ == '__main__':
-    os.system('clear')
+    clear_screen()
     SOURCE_HOST = "127.0.0.1"
-    DESTINATION_HOST = "89.234.180.194"
-    # DESTINATION_HOST = "97.126.42.129"
+    # DESTINATION_HOST = "89.234.180.194"
+    DESTINATION_HOST = "97.126.42.129"
     # DESTINATION_HOST = "97-126-42-129.tukw.qwest.net"
+    # DESTINATION_HOST = "81.171.22.143"
 
+    # Block number from command line argument 
+    block_number = 1085
+
+    previous = Block.parse(BytesIO(GENESIS_BLOCK))
+    first_epoch_timestamp = previous.timestamp
+    expected_bits = LOWEST_BITS
+    count = 1
     node = Node(host=DESTINATION_HOST, logging=True)
     node.handshake()
+    for _ in range(19):
+        getheaders = GetHeadersMessage(start_block=previous.hash())
+        node.send(getheaders)
+        headers = node.wait_for(HeadersMessage)
+        # for header in headers.blocks:
+        #     if block_number == header.block_number:
+        #         print(f"Found my block number {header.block_number}")
+        #     # if not header.check_pow():
+        #     #     raise RuntimeError('bad PoW at block {}'.format(count))
+        #     # if header.prev_block != previous.hash():
+        #     #     raise RuntimeError('discontinuous block at {}'.format(count))
+        #     # if count % 2016 == 0:
+        #     #     time_diff = previous.timestamp - first_epoch_timestamp
+        #     #     expected_bits = calculate_new_bits(previous.bits, time_diff)
+        #     #     print(expected_bits.hex())
+        #     #     first_epoch_timestamp = header.timestamp
+        #     # if header.bits != expected_bits:
+        #     #     raise RuntimeError('bad bits at block {}'.format(count))
+        #     previous = header
+        #     count += 1
