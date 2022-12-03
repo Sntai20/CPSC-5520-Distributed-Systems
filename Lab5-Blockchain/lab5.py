@@ -33,6 +33,8 @@ LOWEST_BITS = bytes.fromhex('ffff001d')
 TWO_WEEKS = 60 * 60 * 24 * 14
 MAX_TARGET = 0xffff * 256**(0x1d - 3)
 
+PREFIX = '  '
+
 class Block:
 
     def __init__(self, version, prev_block, merkle_root,
@@ -475,9 +477,6 @@ class Node:
         if self.logging:
             print(f'\nSending Network Message: {envelope}.\n')
             print(self.print_message(envelope.serialize()))
-            # if envelope.command == VersionMessage.command:
-                # print(self.print_version_msg(envelope.payload))
-                # print(self.print_message(envelope.payload))
         self.socket.sendall(envelope.serialize())
 
     def read(self):
@@ -486,7 +485,8 @@ class Node:
         """
         envelope = NetworkEnvelope.parse(self.stream, testnet=self.testnet)
         if self.logging:
-            print(f'\nReceiving Network Message: {envelope}.\n')
+            print(f'\nReceiving Network Message: {envelope.command}.\n')
+            print(self.print_message(envelope.serialize()))
         return envelope
 
     def wait_for(self, *message_classes):
@@ -512,6 +512,33 @@ class Node:
             #     # send pong
             #     self.send(PongMessage(envelope.payload))
         return command_to_class[command].parse(envelope.stream())
+
+    def print_message(self, msg, text=None, height=None):
+        """
+        Prints the contents of the bitcoin message
+        :param msg: bitcoin message including header
+        :return: message type
+        """
+        print('\n{}MESSAGE'.format('' if text is None else (text + ' ')))
+        print('({}) {}'.format(len(msg), msg[:60].hex() + ('' if len(msg) < 60 else '...')))
+        payload = msg[HDR_SZ:]
+        command = self.print_header(msg[:HDR_SZ], checksum(payload))
+        if command == 'version':
+            self.print_version_msg(payload)
+        elif command == 'sendcmpct':
+            self.print_sendcmpct_message(payload)
+        elif command == 'feefilter':
+            self.print_feefilter_message(payload)
+        elif command == 'addr':
+            self.print_addr_message(payload)
+        elif command == 'getblocks':
+            self.print_getblocks_message(payload)
+        elif command == 'inv' or command == 'getdata' or command == 'notfound':
+            self.print_inv_message(payload, height)
+        elif command == 'block':
+            self.print_block_message(payload)
+        # FIXME print out the payloads of other types of messages, too
+        return command
 
     def print_version_msg(self, b):
         """
@@ -554,20 +581,41 @@ class Node:
         elif len(extra) == 0:
             print('{}{:32} EXTRA'.format(prefix, extra.hex()))
 
-    def print_message(self, msg, text=None):
+    def print_sendcmpct_message(self, payload):
         """
-        Report the contents of the given bitcoin message
-        :param msg: bitcoin message including header
-        :return: message type
+        Prints contents of the sendcmpct message.
+        :param payload: sendcmpct message payload
         """
-        print('\n{}MESSAGE'.format('' if text is None else (text + ' ')))
-        print('({}) {}'.format(len(msg), msg[:60].hex() + ('' if len(msg) < 60 else '...')))
-        payload = msg[HDR_SZ:]
-        command = self.print_header(msg[:HDR_SZ], checksum(payload))
-        if command == 'version':
-            self.print_version_msg(payload)
-        # FIXME print out the payloads of other types of messages, too
-        return command
+        announce, version = payload[:1], payload[1:]
+        prefix = PREFIX * 2
+        print('{}{:32} announce: {}'.format(prefix, announce.hex(), bytes(announce) != b'\0'))
+        print('{}{:32} version: {}'.format(prefix, version.hex(), self.unmarshal_uint(version)))
+
+    def print_feefilter_message(self, feerate):
+        """
+        Prints contents of the feefilter message.
+        :param feerate: feefilter message payload
+        """
+        prefix = PREFIX * 2
+        print('{}{:32} count: {}'.format(prefix, feerate.hex(), self.unmarshal_uint(feerate)))
+
+    def print_addr_message(self, payload):
+        """
+        Prints contents of the addr message.
+        :param payload: addr message payload
+        """
+        ip_count_bytes, ip_addr_count = unmarshal_compactsize(payload)
+        i = len(ip_count_bytes)
+        epoch_time, services, ip_addr, port = \
+            payload[i:i + 4], payload[i + 4:i + 12], \
+            payload[i + 12:i + 28], payload[i + 28:]
+        prefix = PREFIX * 2
+        print('{}{:32} count: {}'.format(prefix, ip_count_bytes.hex(), ip_addr_count))
+        time_str = strftime("%a, %d %b %Y %H:%M:%S GMT", gmtime(self.unmarshal_int(epoch_time)))
+        print('{}{:32} epoch time: {}'.format(prefix, epoch_time.hex(), time_str))
+        print('{}{:32} services: {}'.format(prefix, services.hex(), self.unmarshal_uint(services)))
+        print('{}{:32} host: {}'.format(prefix, ip_addr.hex(), self.ipv6_to_ipv4(ip_addr)))
+        print('{}{:32} port: {}'.format(prefix, port.hex(), self.unmarshal_uint(port)))
 
     def print_header(self, header, expected_cksum=None):
         """
@@ -594,6 +642,54 @@ class Node:
         print('{}{:32} payload size: {}'.format(prefix, payload_size.hex(), psz))
         print('{}{:32} checksum {}'.format(prefix, cksum.hex(), verified))
         return command
+
+    def print_inv_message(self, payload, height):
+        """
+        Prints the contents of the inv message.
+        :param payload: inv message payload
+        :param height: local blockchain height
+        """
+        count_bytes, count = self.unmarshal_compactsize(payload)
+        i = len(count_bytes)
+        inventory = []
+        for _ in range(count):
+            inv_entry = payload[i: i + 4], payload[i + 4:i + 36]
+            inventory.append(inv_entry)
+            i += 36
+
+        prefix = PREFIX * 2
+        print('{}{:32} count: {}'.format(prefix, count_bytes.hex(), count))
+        for i, (tx_type, tx_hash) in enumerate(inventory, start=height if height else 1):
+            print('\n{}{:32} type: {}\n{}-'
+                .format(prefix, tx_type.hex(), self.unmarshal_uint(tx_type), prefix))
+            block_hash = self.swap_endian(tx_hash).hex()
+            print('{}{:32}\n{}{:32} block #{} hash'.format(prefix, block_hash[:32], prefix, block_hash[32:], i))
+
+
+    def print_getblocks_message(self, payload):
+        """
+        Prints contents of the getblocks message.
+        :param payload: getblocks message payload
+        """
+        version = payload[:4]
+        hash_count_bytes, hash_count = self.unmarshal_compactsize(payload[4:])
+        i = 4 + len(hash_count_bytes)
+        block_header_hashes = []
+        for _ in range(hash_count):
+            block_header_hashes.append(payload[i:i + 32])
+            i += 32
+        stop_hash = payload[i:]
+
+        prefix = PREFIX * 2
+        print('{}{:32} version: {}'.format(prefix, version.hex(), self.unmarshal_uint(version)))
+        print('{}{:32} hash count: {}'.format(prefix, hash_count_bytes.hex(), hash_count))
+        for hash in block_header_hashes:
+            hash_hex = self.swap_endian(hash).hex()
+            print('\n{}{:32}\n{}{:32} block header hash # {}: {}'
+                .format(prefix, hash_hex[:32], prefix, hash_hex[32:], 1, self.unmarshal_uint(hash)))
+        stop_hash_hex = stop_hash.hex()
+        print('\n{}{:32}\n{}{:32} stop hash: {}'
+            .format(prefix, stop_hash_hex[:32], prefix, stop_hash_hex[32:], self.unmarshal_uint(stop_hash)))
 
     def unmarshal_compactsize(self, b):
         """
@@ -793,36 +889,40 @@ if __name__ == '__main__':
     clear_screen()
     SOURCE_HOST = "127.0.0.1"
     # DESTINATION_HOST = "89.234.180.194"
-    DESTINATION_HOST = "97.126.42.129"
+    DESTINATION_HOST = "97.126.75.61"
     # DESTINATION_HOST = "97-126-42-129.tukw.qwest.net"
-    # DESTINATION_HOST = "81.171.22.143"
-
-    # Block number from command line argument 
-    block_number = 1085
 
     previous = Block.parse(BytesIO(GENESIS_BLOCK))
     first_epoch_timestamp = previous.timestamp
     expected_bits = LOWEST_BITS
     count = 1
+
     node = Node(host=DESTINATION_HOST, logging=True)
     node.handshake()
-    for _ in range(19):
-        getheaders = GetHeadersMessage(start_block=previous.hash())
-        node.send(getheaders)
-        headers = node.wait_for(HeadersMessage)
-        # for header in headers.blocks:
-        #     if block_number == header.block_number:
-        #         print(f"Found my block number {header.block_number}")
-        #     # if not header.check_pow():
-        #     #     raise RuntimeError('bad PoW at block {}'.format(count))
-        #     # if header.prev_block != previous.hash():
-        #     #     raise RuntimeError('discontinuous block at {}'.format(count))
-        #     # if count % 2016 == 0:
-        #     #     time_diff = previous.timestamp - first_epoch_timestamp
-        #     #     expected_bits = calculate_new_bits(previous.bits, time_diff)
-        #     #     print(expected_bits.hex())
-        #     #     first_epoch_timestamp = header.timestamp
-        #     # if header.bits != expected_bits:
-        #     #     raise RuntimeError('bad bits at block {}'.format(count))
-        #     previous = header
-        #     count += 1
+    getheaders = GetHeadersMessage(start_block=previous.hash())
+    node.send(getheaders)
+    headers = node.wait_for(HeadersMessage)
+    getdata = GetDataMessage()
+    node.send(getdata)
+    
+    # for _ in range(19):
+    #     getheaders = GetHeadersMessage(start_block=previous.hash())
+    #     node.send(getheaders)
+    #     headers = node.wait_for(HeadersMessage)
+    #     # for header in headers.blocks:
+    #     # print(f"Headers {_} {headers.blocks}")
+    #     for header in headers.blocks:
+    #         # print(f"Header {header}")
+    #         if not header.check_pow():
+    #             raise RuntimeError('bad PoW at block {}'.format(count))
+    #         if header.prev_block != previous.hash():
+    #             raise RuntimeError('discontinuous block at {}'.format(count))
+    #         if count % 2016 == 0:
+    #             time_diff = previous.timestamp - first_epoch_timestamp
+    #             expected_bits = calculate_new_bits(previous.bits, time_diff)
+    #             print(expected_bits.hex())
+    #             first_epoch_timestamp = header.timestamp
+    #         if header.bits != expected_bits:
+    #             raise RuntimeError('bad bits at block {}'.format(count))
+    #         previous = header
+    #         count += 1
