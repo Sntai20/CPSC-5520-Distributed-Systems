@@ -3,8 +3,16 @@ STUDENT: Antonio Santana
 FILE: lab5.py
 
 DESCRIPTION:
-    This program demonstrates lab5 using the node class to manage all the interactions with 
-    the Bitcoin network. 
+    This program demonstrates lab5 using the node class to manage all the interactions with
+    the Bitcoin network. The node connects to a peer in the P2P BitCoin network and gets
+    the block number that corresponds to my SU ID number (modulo 10,000).
+    
+    In this lab, I attempted to get as much of the extra credit as possible, including "display
+    the transactions in the block." and "working with the merkle-tree to manipulate one of the
+    transactions in the block to change its output account, then fix up the block to correctly
+    represent this modified data (fix the merkle-tree hashes, etc.). Then show with a
+    program-generated report how the hash of the block has changed and the ways in which this
+    block would be rejected by peers in the network."
 
 USAGE:
     python3 lab5.py
@@ -14,6 +22,209 @@ CODE ORGANIZATION:
     # Node Section:
     # Helpers Section:
     # Main Section:
+
+EXPECTED OUTPUT:
+
+Clearing the Screen.
+Create node, enable logging, and attempt to join the main network.
+
+
+Handshake with host 89.234.180.194 on the main network.
+
+Sending Network Message: version: 7f110100000000000000000024378c6300000000000000000000000000000000000000000000ffff7f000001208d000000000000000000000000000000000000ffff59eab4c2208db668f6844056e66a202f6370736335353230646973747269627574656473797374656d733a302e312f0000000000.
+
+MESSAGE
+(142) f9beb4d976657273696f6e00000000007600000088e0345b7f110100000000000000000024378c630000000000000000000000000000000000000000...
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    76657273696f6e0000000000         command: version
+    76000000                         payload size: 118
+    88e0345b                         checksum (verified)
+  VERSION
+  --------------------------------------------------------
+    7f110100                         version 70015
+    0000000000000000                 my services
+    24378c6300000000                 epoch time Sun, 04 Dec 2022 05:59:00 GMT
+    0000000000000000                 your services
+    00000000000000000000ffff7f000001 your host 127.0.0.1
+    208d                             your port 8333
+    0000000000000000                 my services (again)
+    00000000000000000000ffff59eab4c2 my host 89.234.180.194
+    208d                             my port 8333
+    b668f6844056e66a                 nonce
+    20                               user agent size 32
+    2f6370736335353230646973747269627574656473797374656d733a302e312f user agent '/cpsc5520distributedsystems:0.1/'
+    00000000                         start height 0
+    00                               relay False
+                                     EXTRA
+version
+
+Receiving Network Message: b'version'.
+
+MESSAGE
+(127) f9beb4d976657273696f6e000000000067000000178fe54480110100090400000000000028378c630000000000000000000000000000000000000000...
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    76657273696f6e0000000000         command: version
+    67000000                         payload size: 103
+    178fe544                         checksum (verified)
+  VERSION
+  --------------------------------------------------------
+    80110100                         version 70016
+    0904000000000000                 my services
+    28378c6300000000                 epoch time Sun, 04 Dec 2022 05:59:04 GMT
+    0000000000000000                 your services
+    00000000000000000000ffff4c935d47 your host 76.147.93.71
+    fac6                             your port 50938
+    0904000000000000                 my services (again)
+    00000000000000000000000000000000 my host 0.0.0.0
+    0000                             my port 0
+    72033920026e7bab                 nonce
+    11                               user agent size 17
+    2f5361746f7368693a32322e39392e302f user agent '/Satoshi:22.99.0/'
+    74af0b00                         start height 765812
+    01                               relay True
+                                     EXTRA
+version
+Peer height: 765812
+
+Sending Network Message: verack: .
+
+MESSAGE
+(24) f9beb4d976657261636b000000000000000000005df6e0e2
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    76657261636b000000000000         command: verack
+    00000000                         payload size: 0
+    5df6e0e2                         checksum (verified)
+verack
+
+Receiving Network Message: b'verack'.
+
+
+MESSAGE
+(24) f9beb4d976657261636b000000000000000000005df6e0e2
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    76657261636b000000000000         command: verack
+    00000000                         payload size: 0
+    5df6e0e2                         checksum (verified)
+verack
+Lookup Block Number: 1085 Peer height: 765812
+
+Sending Network Message: getheaders: 7f110100016fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d61900000000000000000000000000000000000000000000000000000000000000000000000000.
+
+MESSAGE
+(93) f9beb4d96765746865616465727300004500000084f4958d7f110100016fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d61900000000...
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    676574686561646572730000         command: getheaders
+    45000000                         payload size: 69
+    84f4958d                         checksum (verified)
+getheaders
+
+Receiving Network Message: b'sendheaders'.
+
+
+MESSAGE
+(24) f9beb4d973656e646865616465727300000000005df6e0e2
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    73656e646865616465727300         command: sendheaders
+    00000000                         payload size: 0
+    5df6e0e2                         checksum (verified)
+sendheaders
+
+Receiving Network Message: b'sendcmpct'.
+
+
+MESSAGE
+(33) f9beb4d973656e64636d70637400000009000000e92f5ef8000200000000000000
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    73656e64636d706374000000         command: sendcmpct
+    09000000                         payload size: 9
+    e92f5ef8                         checksum (verified)
+    00                               announce: False
+    0200000000000000                 version: 2
+sendcmpct
+
+Receiving Network Message: b'sendcmpct'.
+
+
+MESSAGE
+(33) f9beb4d973656e64636d70637400000009000000ccfe104a000100000000000000
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    73656e64636d706374000000         command: sendcmpct
+    09000000                         payload size: 9
+    ccfe104a                         checksum (verified)
+    00                               announce: False
+    0100000000000000                 version: 1
+sendcmpct
+
+Receiving Network Message: b'ping'.
+
+
+MESSAGE
+(32) f9beb4d970696e670000000000000000080000000c35dc778546929f272fd779
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    70696e670000000000000000         command: ping
+    08000000                         payload size: 8
+    0c35dc77                         checksum (verified)
+ping
+
+Receiving Network Message: b'feefilter'.
+
+
+MESSAGE
+(32) f9beb4d966656566696c74657200000008000000e80fd19fe803000000000000
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    66656566696c746572000000         command: feefilter
+    08000000                         payload size: 8
+    e80fd19f                         checksum (verified)
+    e803000000000000                 count: 1000
+feefilter
+
+Receiving Network Message: b'headers'.
+
+
+MESSAGE
+(162027) f9beb4d9686561646572730000000000d3780200a65b2b77fdd007010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000...
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    686561646572730000000000         command: headers
+    d3780200                         payload size: 162003
+    a65b2b77                         checksum (verified)
+headers
+
+Sending Network Message: getdata: 00.
+
+
+MESSAGE
+(25) f9beb4d9676574646174610000000000010000001406e05800
+  HEADER
+  --------------------------------------------------------
+    f9beb4d9                         magic
+    676574646174610000000000         command: getdata
+    01000000                         payload size: 1
+    1406e058                         checksum (verified)
+    00                               count: 0
+getdata
+Block Hash: 7c2bac1d1d00ffff495fab294a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b000000000000000000000000000000000000000000000000000000000000000000000001
 """
 import hashlib
 import os
@@ -332,7 +543,7 @@ class PongMessage:
     def __init__(self, nonce):
         self.nonce = nonce
 
-    def parse(cls, s):
+    def parse(self, cls, s):
         nonce = s.read(8)
         return cls(nonce)
 
@@ -343,6 +554,7 @@ class GetHeadersMessage:
     """
     Get Headers Message class to define the getheaders command.
     We are we using the latest version, 70015.
+    
     https://developer.bitcoin.org/reference/p2p_networking.html#protocol-versions
     """
     command = b'getheaders'
@@ -691,9 +903,25 @@ class Node:
         """Marshal integer to unsigned, 8 bit"""
         return int(n).to_bytes(1, byteorder='little', signed=False)
 
+    def uint16_t(self, n):
+        """
+        Returns an array of bytes representing the integer. The
+        array of bytes is unsigned and the order is in little
+        endian, the most significant byte is at the end.
+        """
+        return int(n).to_bytes(2, byteorder='little', signed=False)
+
     def uint32_t(self, n):
         """Marshal integer to unsigned, 32 bit"""
         return int(n).to_bytes(4, byteorder='little', signed=False)
+
+    def uint64_t(self, n):
+        """
+        Returns an array of bytes representing the integer. The
+        array of bytes is unsigned and the order is in little
+        endian, the most significant byte is at the end.
+        """
+        return int(n).to_bytes(8, byteorder='little', signed=False)
 
     def print_message(self, msg, text=None, height=None):
         """
