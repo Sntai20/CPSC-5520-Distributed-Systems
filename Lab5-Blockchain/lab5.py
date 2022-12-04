@@ -7,12 +7,12 @@ DESCRIPTION:
     the Bitcoin network. The node connects to a peer in the P2P BitCoin network and gets
     the block number that corresponds to my SU ID number (modulo 10,000).
 
-    In this lab, I attempted to get as much of the extra credit as possible, including "display
-    the transactions in the block." and "working with the merkle-tree to manipulate one of the
-    transactions in the block to change its output account, then fix up the block to correctly
-    represent this modified data (fix the merkle-tree hashes, etc.). Then show with a
-    program-generated report how the hash of the block has changed and the ways in which this
-    block would be rejected by peers in the network."
+    In this lab, I attempted an Object-oreinted design and also attempted to get as much of
+    the extra credit as possible, including "display the transactions in the block." and "working
+    with the merkle-tree to manipulate one of the transactions in the block to change its output
+    account, then fix up the block to correctly represent this modified data (fix the merkle-tree
+    hashes, etc.). Then show with a program-generated report how the hash of the block has changed
+    and the ways in which this block would be rejected by peers in the network."
 
 USAGE:
     python3 lab5.py
@@ -722,7 +722,7 @@ class Node:
                 print(f"Peer height: {self.peer_height}")
                 # send verack
                 self.send(VerAckMessage())
-            
+
         return command_to_class[command].parse(envelope.stream())
 
     def lookup_block_number(self):
@@ -734,7 +734,7 @@ class Node:
 
         print(f"Lookup Block Number: {self.block_number} Peer height: {self.peer_height}")
         previous = Block.parse(BytesIO(GENESIS_BLOCK))
-        
+
         getheaders = GetHeadersMessage(start_block=previous.hash())
         node.send(getheaders)
         headers = node.wait_for(HeadersMessage)
@@ -744,7 +744,7 @@ class Node:
         # Send getblocks (starting from genesis) -> receive inv
         block_hash = self.swap_endian(GENESIS_BLOCK)
         print(f"Block Hash: {block_hash.hex()}")
-        current_height = 0
+        # current_height = 0
         # Store 500 blocks from inv messages
         # last_500_blocks = []
         # Keep sending getblocks until inventory has the desired block number
@@ -1142,11 +1142,6 @@ def checksum(payload: bytes):
     """
     return hash256(payload)[:4]
 
-def ipv6_from_ipv4(ipv4_str):
-    """Converts an IPv4 address to IPv6."""
-    pchIPv4 = bytearray([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff])
-    return pchIPv4 + bytearray((int(x) for x in ipv4_str.split('.')))
-
 def hash256(s):
     """Two rounds of sha256."""
     return hashlib.sha256(hashlib.sha256(s).digest()).digest()
@@ -1195,89 +1190,6 @@ def encode_varint(i):
         return b'\xff' + int_to_little_endian(i, 8)
     else:
         raise ValueError('integer too large: {}'.format(i))
-
-def target_to_bits(target):
-    """Turns a target integer back into bits, which is 4 bytes."""
-    raw_bytes = target.to_bytes(32, 'big')
-    # get rid of leading 0's
-    raw_bytes = raw_bytes.lstrip(b'\x00')
-    if raw_bytes[0] > 0x7f:
-        # if the first bit is 1, we have to start with 00
-        exponent = len(raw_bytes) + 1
-        coefficient = b'\x00' + raw_bytes[:2]
-    else:
-        # otherwise, we can show the first 3 bytes
-        # exponent is the number of digits in base-256
-        exponent = len(raw_bytes)
-        # coefficient is the first 3 digits of the base-256 number
-        coefficient = raw_bytes[:3]
-    # we've truncated the number after the first 3 digits of base-256
-    new_bits = coefficient[::-1] + bytes([exponent])
-    return new_bits
-
-def calculate_new_bits(previous_bits, time_differential):
-    """Calculates the new bits given
-    a 2016-block time differential and the previous bits"""
-    # if the time differential is greater than 8 weeks, set to 8 weeks
-    if time_differential > TWO_WEEKS * 4:
-        time_differential = TWO_WEEKS * 4
-    # if the time differential is less than half a week, set to half a week
-    if time_differential < TWO_WEEKS // 4:
-        time_differential = TWO_WEEKS // 4
-    # the new target is the previous target * time differential / two weeks
-    new_target = bits_to_target(previous_bits) * time_differential // TWO_WEEKS
-    # if the new target is bigger than MAX_TARGET, set to MAX_TARGET
-    if new_target > MAX_TARGET:
-        new_target = MAX_TARGET
-    # convert the new target to bits
-    return target_to_bits(new_target)
-
-def merkle_parent(hash1, hash2):
-    """Takes the binary hashes and calculates the hash256"""
-    # return the hash256 of hash1 + hash2
-    return hash256(hash1 + hash2)
-
-def merkle_parent_level(hashes):
-    """Takes a list of binary hashes and returns a list that's half
-    the length"""
-    # if the list has exactly 1 element raise an error
-    if len(hashes) == 1:
-        raise RuntimeError('Cannot take a parent level with only 1 item')
-    # if the list has an odd number of elements, duplicate the last one
-    # and put it at the end so it has an even number of elements
-    if len(hashes) % 2 == 1:
-        hashes.append(hashes[-1])
-    # initialize next level
-    parent_level = []
-    # loop over every pair (use: for i in range(0, len(hashes), 2))
-    for i in range(0, len(hashes), 2):
-        # get the merkle parent of the hashes at index i and i+1
-        parent = merkle_parent(hashes[i], hashes[i + 1])
-        # append parent to parent level
-        parent_level.append(parent)
-    # return parent level
-    return parent_level
-
-def merkle_root(hashes):
-    """Takes a list of binary hashes and returns the merkle root."""
-    # current level starts as hashes
-    current_level = hashes
-    # loop until there's exactly 1 element
-    while len(current_level) > 1:
-        # current level becomes the merkle parent level
-        current_level = merkle_parent_level(current_level)
-    # return the 1st item of the current level
-    return current_level[0]
-
-def bits_to_target(bits):
-    """Turns bits into a target (large 256-bit integer)."""
-    # last byte is exponent
-    exponent = bits[-1]
-    # the first three bytes are the coefficient in little endian
-    coefficient = little_endian_to_int(bits[:-1])
-    # the formula is:
-    # coefficient * 256**(exponent-3)
-    return coefficient * 256**(exponent - 3)
 
 def clear_screen():
     """Define our clear function for Windows, Mac, and Linux."""
