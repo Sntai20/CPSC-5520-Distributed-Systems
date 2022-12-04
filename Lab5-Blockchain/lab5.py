@@ -3,8 +3,8 @@ STUDENT: Antonio Santana
 FILE: lab5.py
 
 DESCRIPTION:
-    This program demonstrates lab5 takes a port number of
-    an existing node and a key (any value from column 1+4 of the file).
+    This program demonstrates lab5 using the node class to manage all the interactions with 
+    the Bitcoin network. 
 
 USAGE:
     python3 lab5.py
@@ -22,7 +22,7 @@ import time
 from io import BytesIO
 from random import randint
 
-HDR_SZ = 24
+HEADER_SIZE = 24
 NETWORK_MAGIC = b'\xf9\xbe\xb4\xd9'
 TESTNET_NETWORK_MAGIC = b'\x0b\x11\x09\x07'
 
@@ -49,7 +49,7 @@ class Block:
 
     @classmethod
     def parse(cls, s):
-        '''Takes a byte stream and parses a block. Returns a Block object'''
+        """Takes a byte stream and parses a block. Returns a Block object"""
         # s.read(n) will read n bytes from the stream
         # version - 4 bytes, little endian, interpret as int
         version = little_endian_to_int(s.read(4))
@@ -67,7 +67,7 @@ class Block:
         return cls(version, prev_block, merkle_root, timestamp, bits, nonce)
 
     def serialize(self):
-        '''Returns the 80 byte block header'''
+        """Returns the 80 byte block header"""
         # version - 4 bytes, little endian
         result = int_to_little_endian(self.version, 4)
         # prev_block - 32 bytes, little endian
@@ -83,7 +83,7 @@ class Block:
         return result
 
     def hash(self):
-        '''Returns the hash256 interpreted little endian of the block'''
+        """Returns the hash256 interpreted little endian of the block"""
         # serialize
         s = self.serialize()
         # hash256
@@ -92,37 +92,37 @@ class Block:
         return h256[::-1]
 
     def bip9(self):
-        '''Returns whether this block is signaling readiness for BIP9'''
+        """Returns whether this block is signaling readiness for BIP9"""
         # BIP9 is signalled if the top 3 bits are 001
         # remember version is 32 bytes so right shift 29 (>> 29) and see if
         # that is 001
         return self.version >> 29 == 0b001
 
     def bip91(self):
-        '''Returns whether this block is signaling readiness for BIP91'''
+        """Returns whether this block is signaling readiness for BIP91"""
         # BIP91 is signalled if the 5th bit from the right is 1
         # shift 4 bits to the right and see if the last bit is 1
         return self.version >> 4 & 1 == 1
 
     def bip141(self):
-        '''Returns whether this block is signaling readiness for BIP141'''
+        """Returns whether this block is signaling readiness for BIP141"""
         # BIP91 is signalled if the 2nd bit from the right is 1
         # shift 1 bit to the right and see if the last bit is 1
         return self.version >> 1 & 1 == 1
 
     def target(self):
-        '''Returns the proof-of-work target based on the bits'''
+        """Returns the proof-of-work target based on the bits"""
         return bits_to_target(self.bits)
 
     def difficulty(self):
-        '''Returns the block difficulty based on the bits'''
+        """Returns the block difficulty based on the bits"""
         # note difficulty is (target of lowest difficulty) / (self's target)
         # lowest difficulty has bits that equal 0xffff001d
         lowest = 0xffff * 256**(0x1d - 3)
         return lowest / self.target()
 
     def check_pow(self):
-        '''Returns whether this block satisfies proof of work'''
+        """Returns whether this block satisfies proof of work"""
         # get the hash256 of the serialization of this block
         h256 = hash256(self.serialize())
         # interpret this hash as a little-endian number
@@ -131,16 +131,15 @@ class Block:
         return proof < self.target()
 
     def validate_merkle_root(self):
-        '''Gets the merkle root of the tx_hashes and checks that it's
+        """Gets the merkle root of the tx_hashes and checks that it's
         the same as the merkle root of this block.
-        '''
+        """
         # reverse each item in self.tx_hashes
         hashes = [h[::-1] for h in self.tx_hashes]
         # compute the Merkle Root and reverse
         root = merkle_root(hashes)[::-1]
         # return whether self.merkle_root is the same
         return root == self.merkle_root
-
 
 # Messages Section: Start
 class NetworkEnvelope:
@@ -215,8 +214,6 @@ class NetworkEnvelope:
 
 class VersionMessage:
     """
-    Base Message container.
-    https://developer.bitcoin.org/reference/p2p_networking.html#version
     The “version” message provides information about the transmitting node
     to the receiving node at the beginning of a connection. Until both peers
     have exchanged “version” messages, no other messages will be accepted.
@@ -224,6 +221,8 @@ class VersionMessage:
     If a “version” message is accepted, the receiving node should send a “verack”
     message—but no node should send a “verack” message before initializing
     its half of the connection by first sending a “version” message.
+
+    https://developer.bitcoin.org/reference/p2p_networking.html#version
     """
     command = b'version'
 
@@ -375,7 +374,7 @@ class GetHeadersMessage:
 
 class HeadersMessage:
     """
-    Headers Message class to define the headers command.s
+    Headers Message class to define the headers command.
     """
     command = b'headers'
 
@@ -434,17 +433,19 @@ class Node:
     connect to socket
     Create a stream that we can use with the rest of the program.
     """
-    def __init__(self, host, port=None, testnet=False, logging=False):
+    def __init__(self, host, port=None, testnet=False, block_number=None, logging=False):
         if port is None:
             if testnet:
                 port = 18333
             else:
                 port = 8333
         self.testnet = testnet
+        self.block_number = int(block_number)
         self.logging = logging
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
         self.stream = self.socket.makefile('rb', None)
+        self.peer_height = None
         if self.logging:
             print("\nClearing the Screen.")
             print("Create node, enable logging, and attempt to join the main network.\n\n")
@@ -480,9 +481,7 @@ class Node:
         self.socket.sendall(envelope.serialize())
 
     def read(self):
-        """
-        Read a message from the socket.
-        """
+        """Read a message from the socket."""
         envelope = NetworkEnvelope.parse(self.stream, testnet=self.testnet)
         if self.logging:
             print(f'\nReceiving Network Message: {envelope.command}.\n')
@@ -506,12 +505,195 @@ class Node:
             command = envelope.command
             # we know how to respond to version and ping, handle that here
             if command == VersionMessage.command:
+                # get the height
+                self.peer_height = self.unmarshal_uint(envelope.serialize()[-5:-1])
+                print(f"Peer height: {self.peer_height}")
                 # send verack
                 self.send(VerAckMessage())
-            # elif command == PingMessage.command:
-            #     # send pong
-            #     self.send(PongMessage(envelope.payload))
+            
         return command_to_class[command].parse(envelope.stream())
+
+    def lookup_block_number(self):
+        time.sleep(3)
+        # Check supplied block number against peer's blockchain height
+        if self.block_number > self.peer_height:
+            print('\nCould not retrieve block {}: max height is {}'.format(self.block_number, self.peer_height))
+            exit(1)
+
+        print(f"Lookup Block Number: {self.block_number} Peer height: {self.peer_height}")
+        previous = Block.parse(BytesIO(GENESIS_BLOCK))
+        
+        getheaders = GetHeadersMessage(start_block=previous.hash())
+        node.send(getheaders)
+        headers = node.wait_for(HeadersMessage)
+        getdata = GetDataMessage()
+        node.send(getdata)
+
+        # Send getblocks (starting from genesis) -> receive inv
+        block_hash = self.swap_endian(GENESIS_BLOCK)
+        print(f"Block Hash: {block_hash.hex()}")
+        current_height = 0
+        # Store 500 blocks from inv messages
+        # last_500_blocks = []
+        # Keep sending getblocks until inventory has the desired block number
+        # while current_height < self.block_number:
+        #     print(f"Current_height {current_height} is less than our block_number {self.block_number}")
+        #     last_500_blocks, current_height = self.send_getblocks_message(block_hash, current_height)
+        #     block_hash = last_500_blocks[-1]
+
+        # my_block_hash = last_500_blocks[(self.block_number - 1) % 500]
+        # getdata_bytes = self.build_message('getdata', self.getdata_message(2, my_block_hash))
+        # msg_list = self.exchange_messages(getdata_bytes, height=self.block_number, wait=True)
+        # my_block = b''.join(msg_list)
+
+    def send_getblocks_message(self, input_hash, current_height):
+        """
+        Helper method for sending the getblocks message to the Bitcoin node.
+        :param input_hash: locator hash for the getblocks message
+        :param current_height: local blockchain height
+        :return: list of last 500 block headers, updated height
+        """
+        getblocks_bytes = self.build_message('getblocks', self.getblocks_message(input_hash))
+        peer_inv = self.exchange_messages(getblocks_bytes, expected_bytes=18027, height=current_height + 1)
+        peer_inv_bytes = b''.join(peer_inv)
+        last_500_headers = [peer_inv_bytes[i:i + 32] for i in range(31, len(peer_inv_bytes), 36)]
+        current_height = self.update_current_height(peer_inv, current_height)
+        return last_500_headers, current_height
+
+    # Encapsulate all of this.
+    def build_message(self, command, payload):
+        """
+        Returns the complete message bytes (header + payload).
+        :param command: message/command type
+        :param payload: payload of the message
+        :return: complete message bytes
+        """
+        return self.message_header(command, payload) + payload
+
+    def exchange_messages(self, bytes_to_send, expected_bytes=None, height=None, wait=False):
+        """
+        Exchanges messages with the Bitcoin node and prints the messages that
+        are being sent and received.
+        :param bytes_to_send: bytes to send to BTC node
+        :param expected_bytes: number of bytes expecting to receive
+        :param height: local blockchain height
+        :param wait: whether to wait for a response
+        :return: list of the message bytes received
+        """
+        BUFFER_SIZE = 64000  # sock recv argument
+        
+        self.socket.settimeout(0.5)
+        bytes_received = b''
+
+        try:
+            self.socket.sendall(bytes_to_send)
+
+            if expected_bytes:
+                # Message size is fixed: receive until byte sizes match
+                while len(bytes_received) < expected_bytes:
+                    bytes_received += self.socket.recv(BUFFER_SIZE)
+            elif wait:
+                # Message size could vary: wait until timeout to receive all bytes
+                while True:
+                    bytes_received += self.socket.recv(BUFFER_SIZE)
+
+        except Exception as e:
+            print('\nNo bytes left to receive {}'
+                .format(str(e)))
+
+        finally:
+            peer_msg_list = self.split_message(bytes_received)
+            return peer_msg_list
+
+    def update_current_height(self, block_list, curr_height):
+        """
+        Update the current height of our local block chain.
+        :param block_list: list of blocks
+        :param curr_height: before height
+        :return: after height
+        """
+        return curr_height + (len(block_list[-1]) - 27) // 36
+
+    def swap_endian(self, b: bytes):
+        """
+        Swap the endianness of the given bytes. If little, swaps to big. If big,
+        swaps to little.
+        :param b: bytes to swap
+        :return: swapped bytes
+        """
+        swapped = bytearray.fromhex(b.hex())
+        swapped.reverse()
+        return swapped
+
+    def split_message(self, peer_msg_bytes):
+        """
+        Splits the bytes into a list of each individual message.
+        :param peer_msg_bytes: message bytes to split
+        :return: list of each message
+        """
+        msg_list = []
+        while peer_msg_bytes:
+            payload_size = self.unmarshal_uint(peer_msg_bytes[16:20])
+            msg_size = HEADER_SIZE + payload_size
+            msg_list.append(peer_msg_bytes[:msg_size])
+            
+            # Discard to move onto next message
+            peer_msg_bytes = peer_msg_bytes[msg_size:]
+        return msg_list
+
+    def message_header(self, command, payload):
+        """
+        Builds a Bitcoin message header.
+        :param command: command/message type
+        :param payload: payload of the message
+        :return: message header bytes
+        """
+        START_STRING = bytes.fromhex('f9beb4d9')  # Magic bytes
+        COMMAND_SIZE = 12  # Message command length
+        magic = START_STRING
+        command_name = command.encode('ascii')
+        while len(command_name) < COMMAND_SIZE:
+            command_name += b'\0'
+        payload_size = self.uint32_t(len(payload))
+        check_sum = checksum(payload)
+        return b''.join([magic, command_name, payload_size, check_sum])
+
+    def getblocks_message(self, header_hash):
+        """
+        Builds the getblocks payload, per the Bitcoin protocol.
+        :param header_hash: locator block hash, for peer to find
+        :return: getblocks message bytes
+        """
+        VERSION = 70015
+        version = self.uint32_t(VERSION)
+        hash_count = self.compactsize_t(1)
+        # Assuming we pass in an already computed sha256(sha256(block)) hash
+        block_header_hashes = bytes.fromhex(header_hash.hex())
+        # Always ask for max number of blocks
+        stop_hash = b'\0' * 32
+        return b''.join([version, hash_count, block_header_hashes, stop_hash])
+
+    def compactsize_t(self, n):
+        """
+        Marshals compactsize data type.
+        :param n: integer
+        :return: marshalled compactsize integer
+        """
+        if n < 252:
+            return self.uint8_t(n)
+        if n < 0xffff:
+            return self.uint8_t(0xfd) + self.uint16_t(n)
+        if n < 0xffffffff:
+            return self.uint8_t(0xfe) + self.uint32_t(n)
+        return self.uint8_t(0xff) + self.uint64_t(n)
+
+    def uint8_t(self, n):
+        """Marshal integer to unsigned, 8 bit"""
+        return int(n).to_bytes(1, byteorder='little', signed=False)
+
+    def uint32_t(self, n):
+        """Marshal integer to unsigned, 32 bit"""
+        return int(n).to_bytes(4, byteorder='little', signed=False)
 
     def print_message(self, msg, text=None, height=None):
         """
@@ -521,8 +703,8 @@ class Node:
         """
         print('\n{}MESSAGE'.format('' if text is None else (text + ' ')))
         print('({}) {}'.format(len(msg), msg[:60].hex() + ('' if len(msg) < 60 else '...')))
-        payload = msg[HDR_SZ:]
-        command = self.print_header(msg[:HDR_SZ], checksum(payload))
+        payload = msg[HEADER_SIZE:]
+        command = self.print_header(msg[:HEADER_SIZE], checksum(payload))
         if command == 'version':
             self.print_version_msg(payload)
         elif command == 'sendcmpct':
@@ -537,7 +719,6 @@ class Node:
             self.print_inv_message(payload, height)
         elif command == 'block':
             self.print_block_message(payload)
-        # FIXME print out the payloads of other types of messages, too
         return command
 
     def print_version_msg(self, b):
@@ -604,14 +785,14 @@ class Node:
         Prints contents of the addr message.
         :param payload: addr message payload
         """
-        ip_count_bytes, ip_addr_count = unmarshal_compactsize(payload)
+        ip_count_bytes, ip_addr_count = self.unmarshal_compactsize(payload)
         i = len(ip_count_bytes)
         epoch_time, services, ip_addr, port = \
             payload[i:i + 4], payload[i + 4:i + 12], \
             payload[i + 12:i + 28], payload[i + 28:]
         prefix = PREFIX * 2
         print('{}{:32} count: {}'.format(prefix, ip_count_bytes.hex(), ip_addr_count))
-        time_str = strftime("%a, %d %b %Y %H:%M:%S GMT", gmtime(self.unmarshal_int(epoch_time)))
+        time_str = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(self.unmarshal_int(epoch_time)))
         print('{}{:32} epoch time: {}'.format(prefix, epoch_time.hex(), time_str))
         print('{}{:32} services: {}'.format(prefix, services.hex(), self.unmarshal_uint(services)))
         print('{}{:32} host: {}'.format(prefix, ip_addr.hex(), self.ipv6_to_ipv4(ip_addr)))
@@ -664,7 +845,6 @@ class Node:
                 .format(prefix, tx_type.hex(), self.unmarshal_uint(tx_type), prefix))
             block_hash = self.swap_endian(tx_hash).hex()
             print('{}{:32}\n{}{:32} block #{} hash'.format(prefix, block_hash[:32], prefix, block_hash[32:], i))
-
 
     def print_getblocks_message(self, payload):
         """
@@ -730,16 +910,12 @@ def checksum(payload: bytes):
     return hash256(payload)[:4]
 
 def ipv6_from_ipv4(ipv4_str):
-    """
-    Converts an IPv4 address to IPv6.
-    """
+    """Converts an IPv4 address to IPv6."""
     pchIPv4 = bytearray([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff])
     return pchIPv4 + bytearray((int(x) for x in ipv4_str.split('.')))
 
 def hash256(s):
-    """
-    Two rounds of sha256.
-    """
+    """Two rounds of sha256."""
     return hashlib.sha256(hashlib.sha256(s).digest()).digest()
 
 def little_endian_to_int(b):
@@ -757,9 +933,7 @@ def int_to_little_endian(n, length):
     return n.to_bytes(length, 'little')
 
 def read_varint(s):
-    """
-    Read_varint reads a variable integer from a stream.
-    """
+    """Read_varint reads a variable integer from a stream."""
     i = s.read(1)[0]
     if i == 0xfd:
         # 0xfd means the next two bytes are the number
@@ -790,7 +964,7 @@ def encode_varint(i):
         raise ValueError('integer too large: {}'.format(i))
 
 def target_to_bits(target):
-    '''Turns a target integer back into bits, which is 4 bytes'''
+    """Turns a target integer back into bits, which is 4 bytes."""
     raw_bytes = target.to_bytes(32, 'big')
     # get rid of leading 0's
     raw_bytes = raw_bytes.lstrip(b'\x00')
@@ -809,8 +983,8 @@ def target_to_bits(target):
     return new_bits
 
 def calculate_new_bits(previous_bits, time_differential):
-    '''Calculates the new bits given
-    a 2016-block time differential and the previous bits'''
+    """Calculates the new bits given
+    a 2016-block time differential and the previous bits"""
     # if the time differential is greater than 8 weeks, set to 8 weeks
     if time_differential > TWO_WEEKS * 4:
         time_differential = TWO_WEEKS * 4
@@ -826,13 +1000,13 @@ def calculate_new_bits(previous_bits, time_differential):
     return target_to_bits(new_target)
 
 def merkle_parent(hash1, hash2):
-    '''Takes the binary hashes and calculates the hash256'''
+    """Takes the binary hashes and calculates the hash256"""
     # return the hash256 of hash1 + hash2
     return hash256(hash1 + hash2)
 
 def merkle_parent_level(hashes):
-    '''Takes a list of binary hashes and returns a list that's half
-    the length'''
+    """Takes a list of binary hashes and returns a list that's half
+    the length"""
     # if the list has exactly 1 element raise an error
     if len(hashes) == 1:
         raise RuntimeError('Cannot take a parent level with only 1 item')
@@ -852,8 +1026,7 @@ def merkle_parent_level(hashes):
     return parent_level
 
 def merkle_root(hashes):
-    '''Takes a list of binary hashes and returns the merkle root
-    '''
+    """Takes a list of binary hashes and returns the merkle root."""
     # current level starts as hashes
     current_level = hashes
     # loop until there's exactly 1 element
@@ -864,7 +1037,7 @@ def merkle_root(hashes):
     return current_level[0]
 
 def bits_to_target(bits):
-    '''Turns bits into a target (large 256-bit integer)'''
+    """Turns bits into a target (large 256-bit integer)."""
     # last byte is exponent
     exponent = bits[-1]
     # the first three bytes are the coefficient in little endian
@@ -888,41 +1061,10 @@ def clear_screen():
 if __name__ == '__main__':
     clear_screen()
     SOURCE_HOST = "127.0.0.1"
-    # DESTINATION_HOST = "89.234.180.194"
-    DESTINATION_HOST = "97.126.75.61"
-    # DESTINATION_HOST = "97-126-42-129.tukw.qwest.net"
+    DESTINATION_HOST = "89.234.180.194"
+    # DESTINATION_HOST = "97.126.75.61"
+    MY_BLOCK_NUMBER = "1085"
 
-    previous = Block.parse(BytesIO(GENESIS_BLOCK))
-    first_epoch_timestamp = previous.timestamp
-    expected_bits = LOWEST_BITS
-    count = 1
-
-    node = Node(host=DESTINATION_HOST, logging=True)
+    node = Node(host=DESTINATION_HOST, block_number=MY_BLOCK_NUMBER, logging=True)
     node.handshake()
-    getheaders = GetHeadersMessage(start_block=previous.hash())
-    node.send(getheaders)
-    headers = node.wait_for(HeadersMessage)
-    getdata = GetDataMessage()
-    node.send(getdata)
-    
-    # for _ in range(19):
-    #     getheaders = GetHeadersMessage(start_block=previous.hash())
-    #     node.send(getheaders)
-    #     headers = node.wait_for(HeadersMessage)
-    #     # for header in headers.blocks:
-    #     # print(f"Headers {_} {headers.blocks}")
-    #     for header in headers.blocks:
-    #         # print(f"Header {header}")
-    #         if not header.check_pow():
-    #             raise RuntimeError('bad PoW at block {}'.format(count))
-    #         if header.prev_block != previous.hash():
-    #             raise RuntimeError('discontinuous block at {}'.format(count))
-    #         if count % 2016 == 0:
-    #             time_diff = previous.timestamp - first_epoch_timestamp
-    #             expected_bits = calculate_new_bits(previous.bits, time_diff)
-    #             print(expected_bits.hex())
-    #             first_epoch_timestamp = header.timestamp
-    #         if header.bits != expected_bits:
-    #             raise RuntimeError('bad bits at block {}'.format(count))
-    #         previous = header
-    #         count += 1
+    node.lookup_block_number()
