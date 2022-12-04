@@ -6,7 +6,7 @@ DESCRIPTION:
     This program demonstrates lab5 using the node class to manage all the interactions with
     the Bitcoin network. The node connects to a peer in the P2P BitCoin network and gets
     the block number that corresponds to my SU ID number (modulo 10,000).
-    
+
     In this lab, I attempted to get as much of the extra credit as possible, including "display
     the transactions in the block." and "working with the merkle-tree to manipulate one of the
     transactions in the block to change its output account, then fix up the block to correctly
@@ -554,7 +554,7 @@ class GetHeadersMessage:
     """
     Get Headers Message class to define the getheaders command.
     We are we using the latest version, 70015.
-    
+
     https://developer.bitcoin.org/reference/p2p_networking.html#protocol-versions
     """
     command = b'getheaders'
@@ -793,7 +793,7 @@ class Node:
         :return: list of the message bytes received
         """
         BUFFER_SIZE = 64000  # sock recv argument
-        
+
         self.socket.settimeout(0.5)
         bytes_received = b''
 
@@ -810,8 +810,7 @@ class Node:
                     bytes_received += self.socket.recv(BUFFER_SIZE)
 
         except Exception as e:
-            print('\nNo bytes left to receive {}'
-                .format(str(e)))
+            print('\nNo bytes left to receive {}'.format(str(e)))
 
         finally:
             peer_msg_list = self.split_message(bytes_received)
@@ -848,7 +847,7 @@ class Node:
             payload_size = self.unmarshal_uint(peer_msg_bytes[16:20])
             msg_size = HEADER_SIZE + payload_size
             msg_list.append(peer_msg_bytes[:msg_size])
-            
+
             # Discard to move onto next message
             peer_msg_bytes = peer_msg_bytes[msg_size:]
         return msg_list
@@ -945,8 +944,6 @@ class Node:
             self.print_getblocks_message(payload)
         elif command == 'inv' or command == 'getdata' or command == 'notfound':
             self.print_inv_message(payload, height)
-        elif command == 'block':
-            self.print_block_message(payload)
         return command
 
     def print_version_msg(self, b):
@@ -1125,6 +1122,14 @@ class Node:
         Converts an IPv6 address to IPv4.
         """
         return '.'.join([str(b) for b in ipv6[12:]])
+
+    def unmarshal_int(self, b):
+        """
+        Returns the integer version of the byte array. The byte array
+        is signed and the order is in little endian, the most
+        significant byte is at the end.
+        """
+        return int.from_bytes(b, byteorder='little', signed=True)
 # Node Section: Stop
 
 # Helpers Section: Start
